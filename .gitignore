@@ -1,0 +1,15 @@
+build/
+.gradle/
+
+# https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore
+*.iml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/dataSources.ids
+.idea/dataSources.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/uiDesigner.xml
+.idea/gradle.xml
+.idea/libraries
