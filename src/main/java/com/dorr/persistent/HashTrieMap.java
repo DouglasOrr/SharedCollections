@@ -28,7 +28,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         mRoot = root;
     }
 
-    // public static factories
+    // *** Factories ***
     public static final HashTrieMap EMPTY = new HashTrieMap(null);
     public static <K,V> HashTrieMap<K,V> empty() {
         return EMPTY;
@@ -104,6 +104,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
                     if (key.equals(currentCollision[idx].getKey())) {
                         break;
                     }
+                    ++idx;
                 }
                 // expand if needed, and write in the new element
                 Entry<K,V>[] newCollision = Arrays.copyOf(currentCollision, Math.max(currentCollision.length, idx + 1));

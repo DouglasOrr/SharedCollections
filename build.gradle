@@ -13,4 +13,6 @@ repositories {
 
 dependencies {
     testCompile 'junit:junit:4.11'
+    testCompile 'org.clojure:clojure:1.6.0'
+    testCompile 'org.scala-lang:scala-library:2.11.4'
 }

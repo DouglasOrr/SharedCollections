@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * A persistent map class that does not support in-place updates,
- * but does support updates with structural sharing.
+ * but supports updates with structural sharing.
  */
 public interface PersistentMap<K,V> extends Iterable<Map.Entry<K, V>> {
     class Entry<K, V> implements Map.Entry<K,V> {
@@ -26,11 +26,13 @@ public interface PersistentMap<K,V> extends Iterable<Map.Entry<K, V>> {
         }
     }
 
-    PersistentMap<K,V> put(K key, V value);
-
     V get(K key);
 
+    PersistentMap<K,V> put(K key, V value);
+
+    /** How many key-value pairings are present in the map. */
     int size();
 
+    /** Returns an unmodifiable map 'view' of this map. */
     Map<K, V> asMap();
 }

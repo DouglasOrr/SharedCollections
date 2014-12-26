@@ -1,5 +1,6 @@
 build/
 .gradle/
+local/
 
 # https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore
 *.iml
