@@ -7,6 +7,8 @@ import java.util.*;
  */
 public class HashTrieMap<K,V> implements PersistentMap<K,V> {
 
+    // TODO: Clojure's implementation saves memory by putting keys & values adjacent in the children array
+    // (not using map entry pairs) - could we do this?
     private static class Node {
         // child :: Node | PersistentMap$Entry | PersistentMap$Entry[]
         public final Object[] children;
@@ -35,6 +37,48 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
     }
     public static <K,V> HashTrieMap<K,V> singleton(K key, V value) {
         return new HashTrieMap<K,V>(new Entry<K,V>(key, value));
+    }
+
+    @Override
+    public V get(K key) {
+        if (key == null || mRoot == null) {
+            return null;
+        }
+
+        final int hash = key.hashCode();
+        int shift = 0;
+        Object current = mRoot;
+        while (true) {
+            if (current instanceof Node) {
+                // Case 1: a node - continue searching from the child node
+                Node currentNode = (Node) current;
+                // take a 5-bit chunk of the hash code
+                int offset = (hash >>> shift) & HASH_MASK;
+                int mask = 1 << offset;
+                if ((currentNode.hasChild & mask) != 0) {
+                    // we have found a child (which must be non-null), so continue searching
+                    current = currentNode.children[Integer.bitCount(currentNode.hasChild & (mask - 1))];
+                    shift += HASH_SHIFT;
+                } else {
+                    // no child with that hash - key must be missing
+                    return null;
+                }
+
+            } else if (current instanceof Entry) {
+                // Case 2: an Entry - return the value only if the key matches
+                Entry<K, V> entry = (Entry) current;
+                return key.equals(entry.getKey()) ? entry.getValue() : null;
+
+            } else {
+                // Case 3: must be a collision (Entry[]) - do a linear search in the collision 'array map'
+                for (Entry<K,V> entry : (Entry<K,V>[]) current) {
+                    if (key.equals(entry.getKey())) {
+                        return entry.getValue();
+                    }
+                }
+                return null;
+            }
+        }
     }
 
     // helper function to implement 'put'
@@ -148,45 +192,8 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
     }
 
     @Override
-    public V get(K key) {
-        if (key == null || mRoot == null) {
-            return null;
-        }
-
-        final int hash = key.hashCode();
-        int shift = 0;
-        Object current = mRoot;
-        while (true) {
-            if (current instanceof Node) {
-                // Case 1: a node - continue searching from the child node
-                Node currentNode = (Node) current;
-                // take a 5-bit chunk of the hash code
-                int offset = (hash >>> shift) & HASH_MASK;
-                int mask = 1 << offset;
-                if ((currentNode.hasChild & mask) != 0) {
-                    // we have found a child (which must be non-null), so continue searching
-                    current = currentNode.children[Integer.bitCount(currentNode.hasChild & (mask - 1))];
-                    shift += HASH_SHIFT;
-                } else {
-                    // no child with that hash - key must be missing
-                    return null;
-                }
-
-            } else if (current instanceof Entry) {
-                // Case 2: an Entry - return the value only if the key matches
-                Entry<K, V> entry = (Entry) current;
-                return key.equals(entry.getKey()) ? entry.getValue() : null;
-
-            } else {
-                // Case 3: must be a collision (Entry[]) - do a linear search in the collision 'array map'
-                for (Entry<K,V> entry : (Entry<K,V>[]) current) {
-                    if (key.equals(entry.getKey())) {
-                        return entry.getValue();
-                    }
-                }
-                return null;
-            }
-        }
+    public PersistentMap<K, V> remove(K key) {
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     @Override

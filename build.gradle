@@ -7,6 +7,10 @@ compileJava {
     targetCompatibility = 1.6
 }
 
+test {
+    jvmArgs '-javaagent:lib/object-explorer.jar'
+}
+
 repositories {
     mavenCentral()
 }
@@ -15,4 +19,7 @@ dependencies {
     testCompile 'junit:junit:4.11'
     testCompile 'org.clojure:clojure:1.6.0'
     testCompile 'org.scala-lang:scala-library:2.11.4'
+
+    testCompile 'com.google.guava:guava:18.0'
+    testCompile files('lib/object-explorer.jar')
 }
