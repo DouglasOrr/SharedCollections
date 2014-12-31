@@ -33,6 +33,14 @@ public class HashTrieMapTest extends TestCase {
         assertThat(m.get("two"), nullValue());
     }
 
+    public void testRemove() {
+        HashTrieMap<String, Integer> m = HashTrieMap.<String, Integer>empty().put("one", 1).put("two", 2);
+        assertThat(m.get("one"), equalTo(1));
+        assertThat(m.remove("one").get("one"), nullValue());
+        assertThat(m.remove("one").get("two"), equalTo(2));
+        assertThat(m.remove("three").get("one"), equalTo(1)); // remove missing
+    }
+
     public static class TestHash<T> {
         public final int hash;
         public final T value;
@@ -61,8 +69,11 @@ public class HashTrieMapTest extends TestCase {
                 m = m.put(new TestHash<String>(Integer.toString(i), hash), i);
             }
             for (int i = 0; i < 100; ++i) {
-                assertThat(m.get(new TestHash<String>(Integer.toString(i), hash)), equalTo(i));
+                TestHash<String> key = new TestHash<String>(Integer.toString(i), hash);
+                assertThat(m.get(key), equalTo(i));
+                assertThat(m.remove(key).get(key), nullValue());
             }
+            // TODO: remove all-but-1, all
         }
     }
 }

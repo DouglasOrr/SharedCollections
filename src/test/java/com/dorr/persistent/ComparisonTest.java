@@ -214,7 +214,7 @@ public class ComparisonTest {
 
         @Parameterized.Parameters
         public static Collection<Object[]> data() {
-            return TEST_MAPS;//Arrays.asList(new Object[][]{{TEST_DOUG}, {TEST_CLOJURE}});
+            return TEST_MAPS;
         }
         private final MapTester<String, Integer> mTester;
         public Performance(MapTester<String, Integer> tester) {
