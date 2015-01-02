@@ -44,6 +44,8 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         return new HashTrieMap<K,V>(new Entry<K,V>(key, value), 1);
     }
 
+    // *** Core ***
+
     @Override
     public V get(K key) {
         if (key == null || mRoot == null) {
@@ -225,7 +227,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
      * @param hash the hash value of key
      * @return the new version of current, with 'key' removed
      */
-    private static <K> Object removeKey(Object current, K key, int hash, int shift) {
+    private static <K> Object removeFrom(Object current, K key, int hash, int shift) {
         if (current instanceof Node) {
             Node currentNode = (Node) current;
             // take a 5-bit chunk of the hash code
@@ -238,7 +240,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
             } else {
                 int childIndex = Integer.bitCount(currentNode.hasChild & (mask - 1));
                 Object currentChild = currentNode.children[childIndex];
-                Object newChild = removeKey(currentChild, key, hash, shift + HASH_SHIFT);
+                Object newChild = removeFrom(currentChild, key, hash, shift + HASH_SHIFT);
                 if (currentChild == newChild) {
                     // key not found (recursively) - don't modify
                     return current;
@@ -297,18 +299,8 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
             return this; // we were empty - still empty
         }
         // delegate to a recursive helper
-        Object newRoot = removeKey(mRoot, key, key.hashCode(), 0);
+        Object newRoot = removeFrom(mRoot, key, key.hashCode(), 0);
         return newRoot == mRoot ? this : new HashTrieMap<K, V>(newRoot, mSize - 1);
-    }
-
-    @Override
-    public int size() {
-        return mSize;
-    }
-
-    @Override
-    public Map<K, V> asMap() {
-        return new PersistentMapAdapter<K, V>(this);
     }
 
     private static class DepthFirstIterator<K,V> implements Iterator<Map.Entry<K,V>> {
@@ -384,6 +376,18 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
             moveToNext();
             return next;
         }
+    }
+
+    // *** Other methods ***
+
+    @Override
+    public int size() {
+        return mSize;
+    }
+
+    @Override
+    public Map<K, V> asMap() {
+        return new PersistentMapAdapter<K, V>(this);
     }
 
     @Override
