@@ -1,6 +1,6 @@
 package com.dorr.persistent;
 
-import java.util.Map;
+import java.util.*;
 
 /**
  * A persistent map class that does not support in-place updates,
@@ -19,10 +19,13 @@ public interface PersistentMap<K,V> extends Iterable<Map.Entry<K, V>> {
         public K getKey() { return mKey; }
         @Override
         public V getValue() { return mValue; }
-
         @Override
         public V setValue(V object) {
             throw new UnsupportedOperationException("setValue() mutator not possible for an immutable PersistentMap.Entry");
+        }
+        @Override
+        public String toString() {
+            return mKey + "=" + mValue;
         }
     }
 

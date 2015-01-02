@@ -1,8 +1,12 @@
 package com.dorr.persistent;
 
+import com.google.common.collect.ImmutableMap;
 import junit.framework.TestCase;
+import org.hamcrest.CoreMatchers;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -10,6 +14,23 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class HashTrieMapTest extends TestCase {
+    /** A wrapper class with an explicit hash code, specified at construction time. */
+    public static class TestHash<T> {
+        public final int hash;
+        public final T value;
+        public TestHash(T value, int hash) {
+            this.hash = hash;
+            this.value = value;
+        }
+        @Override
+        public int hashCode() { return hash; }
+        @Override
+        public String toString() { return value.toString(); }
+        @Override
+        public boolean equals(Object that) {
+            return that instanceof TestHash && this.value.equals(((TestHash) that).value);
+        }
+    }
 
     public void testEmpty() {
         assertThat(HashTrieMap.empty().get("foo"), nullValue());
@@ -31,6 +52,7 @@ public class HashTrieMapTest extends TestCase {
         assertThat(m.get("onehundred"), equalTo(100));
         assertThat(m.get("twenty-two"), equalTo(22));
         assertThat(m.get("two"), nullValue());
+        System.out.println("Map: " + m);
     }
 
     public void testRemove() {
@@ -41,21 +63,14 @@ public class HashTrieMapTest extends TestCase {
         assertThat(m.remove("three").get("one"), equalTo(1)); // remove missing
     }
 
-    public static class TestHash<T> {
-        public final int hash;
-        public final T value;
-        public TestHash(T value, int hash) {
-            this.hash = hash;
-            this.value = value;
+    public void testIterate() {
+        HashTrieMap<String, Integer> m = HashTrieMap.<String, Integer>empty().put("one", 1).put("two", 2).put("three", 3);
+
+        Map<String, Integer> copy = new HashMap<String, Integer>();
+        for (Map.Entry<String, Integer> entry : m) {
+            copy.put(entry.getKey(), entry.getValue());
         }
-        @Override
-        public int hashCode() { return hash; }
-        @Override
-        public String toString() { return value.toString(); }
-        @Override
-        public boolean equals(Object that) {
-            return that instanceof TestHash && this.value.equals(((TestHash) that).value);
-        }
+        assertThat(copy, CoreMatchers.<Map<String, Integer>> equalTo(ImmutableMap.of("one", 1, "two", 2, "three", 3)));
     }
 
     public void testCollisions() throws Exception {

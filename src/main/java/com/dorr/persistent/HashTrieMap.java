@@ -23,20 +23,25 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
 
     // root :: Node | PersistentMap$Entry | PersistentMap$Entry[] | Null
     private final Object mRoot;
+    private final int mSize;
     private static final int HASH_MASK = 0x001F;
     private static final int HASH_SHIFT = 5;
 
-    private HashTrieMap(Object root) {
+    private HashTrieMap(Object root, int size) {
         mRoot = root;
+        mSize = size;
     }
 
     // *** Factories ***
-    public static final HashTrieMap EMPTY = new HashTrieMap(null);
+    public HashTrieMap() {
+        this(null, 0);
+    }
+    public static final HashTrieMap EMPTY = new HashTrieMap(null, 0);
     public static <K,V> HashTrieMap<K,V> empty() {
         return EMPTY;
     }
     public static <K,V> HashTrieMap<K,V> singleton(K key, V value) {
-        return new HashTrieMap<K,V>(new Entry<K,V>(key, value));
+        return new HashTrieMap<K,V>(new Entry<K,V>(key, value), 1);
     }
 
     @Override
@@ -71,7 +76,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
 
             } else {
                 // Case 3: must be a collision (Entry[]) - do a linear search in the collision 'array map'
-                for (Entry<K,V> entry : (Entry<K,V>[]) current) {
+                for (Entry<K,V> entry : (Entry[]) current) {
                     if (key.equals(entry.getKey())) {
                         return entry.getValue();
                     }
@@ -151,7 +156,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
 
                 if (key.equals(currentEntry.getKey())) {
                     // TERMINAL replace the existing entry (same key)
-                    return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, entry));
+                    return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, entry), mSize);
 
                 } else if (shift < Integer.SIZE) {
                     // split into a Node (and get handled as 'instanceof Node' below)
@@ -160,21 +165,22 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
 
                 } else {
                     // TERMINAL generate a 2-element collision array
-                    return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new Entry[] { entry, currentEntry }));
+                    return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new Entry[] { entry, currentEntry }), mSize + 1);
                 }
 
             } else if (current instanceof Entry[]) {
                 // a collision - we must be a leaf, so just add or replace the entry in the collision list
-                Entry<K,V>[] currentCollision = (Entry<K,V>[]) current;
+                Entry<K,V>[] currentCollision = (Entry[]) current;
 
                 // find the existing index of the match
                 int idx = findCollision(currentCollision, key);
+                boolean found = idx < currentCollision.length;
                 // expand if needed, and write in the new element
-                Entry<K,V>[] newCollision = Arrays.copyOf(currentCollision, Math.max(currentCollision.length, idx + 1));
+                Entry<K,V>[] newCollision = Arrays.copyOf(currentCollision, currentCollision.length + (found ? 0 : 1));
                 newCollision[idx] = entry;
 
                 // TERMINAL
-                return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, newCollision));
+                return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, newCollision), mSize + (found ? 0 : 1));
             }
 
             // then we must be at a Node
@@ -194,7 +200,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
                     children[i] = currentNode.children[i-1];
                 }
                 // TERMINAL
-                return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new Node(children, currentNode.hasChild | mask)));
+                return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new Node(children, currentNode.hasChild | mask)), mSize + 1);
 
             } else {
                 // NON-TERMINAL hash prefix collision
@@ -264,7 +270,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
             return key.equals(((Entry) current).getKey()) ? null : current;
 
         } else { // must be an Entry[]
-            Entry<K,?>[] currentCollision = (Entry<K,?>[]) current;
+            Entry<K,?>[] currentCollision = (Entry[]) current;
             int idx = findCollision(currentCollision, key);
 
             if (currentCollision.length <= idx) {
@@ -292,98 +298,140 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         }
         // delegate to a recursive helper
         Object newRoot = removeKey(mRoot, key, key.hashCode(), 0);
-        return newRoot == mRoot ? this : new HashTrieMap<K, V>(newRoot);
+        return newRoot == mRoot ? this : new HashTrieMap<K, V>(newRoot, mSize - 1);
     }
 
     @Override
     public int size() {
-        return 0; // TODO
+        return mSize;
     }
 
     @Override
     public Map<K, V> asMap() {
-        return new Map<K,V>() {
-            @Override
-            public boolean containsKey(Object key) {
-                return HashTrieMap.this.get((K) key) != null;
-            }
+        return new PersistentMapAdapter<K, V>(this);
+    }
 
-            @Override
-            public boolean containsValue(Object value) {
-                return false; // TODO
-            }
+    private static class DepthFirstIterator<K,V> implements Iterator<Map.Entry<K,V>> {
+        // stack of nodes from root to current leaf
+        private static final int MAX_DEPTH = 7; // max size of the deque is 32 bits / 5 (bits/node) = 7 nodes
+        private final Node[] mNodeStack = new Node[MAX_DEPTH];
+        private final int[] mNodeIndexStack = new int[MAX_DEPTH];
+        private int mNodeStackPointer = -1;
+        // the current leaf (and position in the collision array, if needed)
+        private Object mCurrent;
+        private int mCurrentCollisionIndex = -1;
 
-            @Override
-            public V get(Object key) {
-                return null; // TODO
+        private DepthFirstIterator(Object root) {
+            if (root instanceof Node) {
+                mNodeStack[0] = (Node) root;
+                mNodeIndexStack[0] = -1;
+                mNodeStackPointer = 0;
+                moveToNext();
+            } else {
+                mCurrent = root;
             }
+        }
 
-            @Override
-            public boolean isEmpty() {
-                return false; // TODO
+        private void moveToNext() {
+            if (mCurrent instanceof Map.Entry[]
+                    && ((Map.Entry[]) mCurrent).length <= ++mCurrentCollisionIndex) {
+                // do nothing - we've already advanced to the next collision node
+
+            } else {
+                // walk up the tree until we have successfully advanced to the next child
+                while (mNodeStack[mNodeStackPointer].children.length <= ++mNodeIndexStack[mNodeStackPointer]) {
+                    --mNodeStackPointer;
+                    if (mNodeStackPointer < 0) {
+                        mCurrent = null;
+                        return;
+                    }
+                }
+                // walk down the tree until we have found the first child from the current top of the stack
+                while (true) {
+                    Object child = mNodeStack[mNodeStackPointer].children[mNodeIndexStack[mNodeStackPointer]];
+                    if (child instanceof Map.Entry) {
+                        mCurrent = child;
+                        return;
+
+                    } else if (child instanceof Map.Entry[]) {
+                        assert(0 < ((Map.Entry[]) child).length);
+                        mCurrent = child;
+                        mCurrentCollisionIndex = 0;
+                        return;
+
+                    } else { // Node
+                        // push onto the stack & keep searching
+                        assert(0 < ((Node) child).children.length);
+                        ++mNodeStackPointer;
+                        mNodeStack[mNodeStackPointer] = (Node) child;
+                        mNodeIndexStack[mNodeStackPointer] = 0;
+                    }
+                }
             }
+        }
 
-            @Override
-            public int size() {
-                return 0; // TODO
-            }
+        @Override
+        public boolean hasNext() {
+            return mCurrent != null;
+        }
 
-            @Override
-            public Set<Entry<K, V>> entrySet() {
-                return null; // TODO
-            }
-
-            @Override
-            public Set<K> keySet() {
-                return null; // TODO
-            }
-
-            @Override
-            public Collection<V> values() {
-                return null; // TODO
-            }
-
-            // *** Mutable - not implemented ***
-
-            @Override
-            public void clear() {
-                throw new UnsupportedOperationException("Mutating method called on immutable HashTrieMap");
-            }
-
-            @Override
-            public V put(K key, V value) {
-                throw new UnsupportedOperationException("Mutating method called on immutable HashTrieMap");
-            }
-
-            @Override
-            public void putAll(Map<? extends K, ? extends V> map) {
-                throw new UnsupportedOperationException("Mutating method called on immutable HashTrieMap");
-            }
-
-            @Override
-            public V remove(Object key) {
-                throw new UnsupportedOperationException("Mutating method called on immutable HashTrieMap");
-            }
-        };
+        @Override
+        public Map.Entry<K, V> next() {
+            Map.Entry<K,V> next =
+                    (mCurrent instanceof Entry[])
+                    ? ((Entry[]) mCurrent)[mCurrentCollisionIndex]
+                    : (Entry) mCurrent;
+            moveToNext();
+            return next;
+        }
     }
 
     @Override
     public Iterator<Map.Entry<K, V>> iterator() {
-        return null; // TODO
+        return new DepthFirstIterator<K, V>(mRoot);
     }
 
     @Override
-    public boolean equals(Object o) {
-        return super.equals(o); // TODO
+    public boolean equals(Object _that) {
+        if (_that == this) {
+            return true;
+
+        } else if (!(_that instanceof PersistentMap)) {
+            return false;
+
+        } else {
+            PersistentMap<K,V> that = (PersistentMap) _that;
+            if (this.size() != that.size()) {
+                return false;
+            }
+            for (Map.Entry<K,V> thisEntry : this) {
+                if (!thisEntry.getValue().equals(that.get(thisEntry.getKey()))) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     @Override
     public int hashCode() {
-        return super.hashCode(); // TODO
+        int hash = 0;
+        for (Map.Entry<K,V> entry : this) {
+            hash += entry.hashCode();
+        }
+        return hash;
     }
 
     @Override
     public String toString() {
-        return super.toString(); // TODO
+        StringBuilder sb = new StringBuilder("{");
+        boolean separate = false;
+        for (Map.Entry<K,V> entry : this) {
+            if (separate) { sb.append(", "); }
+            sb.append(entry);
+            separate = true;
+        }
+        sb.append("}");
+        return sb.toString();
     }
 }
