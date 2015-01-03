@@ -7,6 +7,7 @@ import java.util.*;
  * but supports updates with structural sharing.
  */
 public interface PersistentMap<K,V> extends Iterable<Map.Entry<K, V>> {
+    @Deprecated
     class Entry<K, V> implements Map.Entry<K,V> {
         private final K mKey;
         private final V mValue;

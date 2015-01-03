@@ -7,27 +7,66 @@ import java.util.*;
  */
 public class HashTrieMap<K,V> implements PersistentMap<K,V> {
 
-    // TODO: Clojure's implementation saves memory by putting keys & values adjacent in the children array
-    // (not using map entry pairs) - could we do this?
     private static class Node {
-        // child :: Node | PersistentMap$Entry | PersistentMap$Entry[]
+        // children is an array of stride-2, with each pair of elements either being:
+        // (Node, null) | (K, V) | (KV[], null)
         public final Object[] children;
         public final int hasChild;
         private Node(Object[] children, int hasChild) {
             this.children = children;
             this.hasChild = hasChild;
             assert children != null;
-            assert Integer.bitCount(hasChild) == children.length;
+            assert 2*Integer.bitCount(hasChild) == children.length;
         }
     }
 
-    // root :: Node | PersistentMap$Entry | PersistentMap$Entry[] | Null
-    private final Object mRoot;
+    // TODO: Clojure's implementation saves memory by putting keys & values adjacent in the children array - do this?
+    private static class EntryView<K,V> implements Map.Entry<K,V> {
+        private final Object[] mObjects;
+        private final int mIndex;
+
+        private EntryView(Object[] objects, int index) {
+            mObjects = objects;
+            mIndex = index;
+        }
+
+        @Override
+        public K getKey() {
+            return (K) mObjects[mIndex];
+        }
+        @Override
+        public V getValue() {
+            return (V) mObjects[mIndex + 1];
+        }
+
+        @Override
+        public boolean equals(Object _that) {
+            if (!(_that instanceof Map.Entry)) {
+                return false;
+
+            } else {
+                Map.Entry<K,V> that = (Map.Entry) _that;
+                return getKey().equals(that.getKey())
+                        && getValue().equals(that.getValue());
+            }
+        }
+        @Override
+        public int hashCode() {
+            return mObjects[mIndex].hashCode() ^ mObjects[mIndex + 1].hashCode();
+        }
+
+        @Override
+        public V setValue(V v) {
+            throw new UnsupportedOperationException("SetValue on an immutable map");
+        }
+    }
+
+    private final Node mRoot;
     private final int mSize;
     private static final int HASH_MASK = 0x001F;
     private static final int HASH_SHIFT = 5;
 
-    private HashTrieMap(Object root, int size) {
+    private HashTrieMap(Node root, int size) {
         mRoot = root;
         mSize = size;
     }
@@ -41,7 +80,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         return EMPTY;
     }
     public static <K,V> HashTrieMap<K,V> singleton(K key, V value) {
-        return new HashTrieMap<K,V>(new Entry<K,V>(key, value), 1);
+        return new HashTrieMap<K,V>(new Node(new Object[] { key, value }, 1 << (key.hashCode() & HASH_MASK)), 1);
     }
 
     // *** Core ***
@@ -54,35 +93,41 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
 
         final int hash = key.hashCode();
         int shift = 0;
-        Object current = mRoot;
+        Node current = mRoot;
         while (true) {
-            if (current instanceof Node) {
-                // Case 1: a node - continue searching from the child node
-                Node currentNode = (Node) current;
-                // take a 5-bit chunk of the hash code
-                int offset = (hash >>> shift) & HASH_MASK;
-                int mask = 1 << offset;
-                if ((currentNode.hasChild & mask) != 0) {
-                    // we have found a child (which must be non-null), so continue searching
-                    current = currentNode.children[Integer.bitCount(currentNode.hasChild & (mask - 1))];
+            // take a 5-bit chunk of the hash code
+            int offset = (hash >>> shift) & HASH_MASK;
+            int mask = 1 << offset;
+            if ((current.hasChild & mask) != 0) {
+                // we have found a child (which must be non-null)
+                int index = Integer.bitCount(current.hasChild & (mask - 1));
+                Object next = current.children[2*index];
+
+                if (next instanceof Node) {
+                    // Case 1: found another node - continue searching
+                    current = (Node) next;
                     shift += HASH_SHIFT;
-                } else {
-                    // no child with that hash - key must be missing
-                    return null;
-                }
 
-            } else if (current instanceof Entry) {
-                // Case 2: an Entry - return the value only if the key matches
-                Entry<K, V> entry = (Entry) current;
-                return key.equals(entry.getKey()) ? entry.getValue() : null;
+                } else { // a leaf
+                    Object nextValue = current.children[2*index + 1];
+                    if (nextValue != null) {
+                        // Case 2: a key-value mapping
+                        return key.equals(next) ? (V) nextValue : null;
 
-            } else {
-                // Case 3: must be a collision (Entry[]) - do a linear search in the collision 'array map'
-                for (Entry<K,V> entry : (Entry[]) current) {
-                    if (key.equals(entry.getKey())) {
-                        return entry.getValue();
+                    } else {
+                        // Case 3: a collision node
+                        Object[] collision = (Object[]) next;
+                        for (int i = 0; i < collision.length; i += 2) {
+                            if (key.equals(collision[i])) {
+                                return (V) collision[i + 1];
+                            }
+                        }
+                        return null;
                     }
                 }
+
+            } else {
+                // no child with that hash - key must be missing
                 return null;
             }
         }
@@ -91,14 +136,15 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
     // helper function to implement 'put'
     // connects up the object 'next' to the trie between 'root' & 'parent'
     // returns the new value of the trie root
-    private static Object connect(Object root, Object[] parent, int parentIndex, Object next) {
+    private static Node connect(Node root, Object[] parent, int parentIndex, Object next, Object nextValue) {
         if (root == null) {
             // we're looking at the root node, return it
-            return next;
+            return (Node) next;
         } else {
             // we're looking at some child node, the root doesn't change,
             // but we must connect 'next' up to its' parent instead
-            parent[parentIndex] = next;
+            parent[2*parentIndex] = next;
+            parent[2*parentIndex+1] = nextValue;
             return root;
         }
     }
@@ -109,15 +155,13 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
      * @param key the key to match
      * @return the index of the entry, or <code>entries.length</code> if not found
      */
-    private static <K> int findCollision(Entry<K,?>[] entries, K key) {
-        int index = 0;
-        while (index < entries.length) {
-            if (key.equals(entries[index].getKey())) {
-                break;
+    private static int findCollision(Object[] keyValues, Object key) {
+        for (int index = 0; index < keyValues.length; index += 2) {
+            if (key.equals(keyValues[index])) {
+                return index;
             }
-            ++index;
         }
-        return index;
+        return keyValues.length;
     }
 
     private static <T> T[] copyWithout(T[] original, int index) {
@@ -136,84 +180,86 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         if (value == null) {
             throw new NullPointerException("Cannot add a null value to a HashTrieMap");
         }
-        // special case the root - the only nullable object
+        // special case the root - the only nullable Node
         if (mRoot == null) {
             return singleton(key, value);
         }
-
-        // convenience
-        final Entry<K, V> entry = new Entry<K,V>(key, value);
         final int hash = key.hashCode();
 
         // a lot of state!
-        Object newRoot = null;
+        Node newRoot = null;
+        Node current = mRoot;
         Object[] parent = null;
         int parentIndex = -1;
-        Object current = mRoot;
         int shift = 0;
         while (true) {
-            // are we at a leaf (single-element or multi-element 'collision')
-            if (current instanceof Entry) {
-                Entry<K,V> currentEntry = (Entry) current;
-
-                if (key.equals(currentEntry.getKey())) {
-                    // TERMINAL replace the existing entry (same key)
-                    return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, entry), mSize);
-
-                } else if (shift < Integer.SIZE) {
-                    // split into a Node (and get handled as 'instanceof Node' below)
-                    int currentEntryHash = (currentEntry.getKey().hashCode() >>> shift) & HASH_MASK;
-                    current = new Node(new Object[] { currentEntry }, 1 << currentEntryHash);
-
-                } else {
-                    // TERMINAL generate a 2-element collision array
-                    return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new Entry[] { entry, currentEntry }), mSize + 1);
-                }
-
-            } else if (current instanceof Entry[]) {
-                // a collision - we must be a leaf, so just add or replace the entry in the collision list
-                Entry<K,V>[] currentCollision = (Entry[]) current;
-
-                // find the existing index of the match
-                int idx = findCollision(currentCollision, key);
-                boolean found = idx < currentCollision.length;
-                // expand if needed, and write in the new element
-                Entry<K,V>[] newCollision = Arrays.copyOf(currentCollision, currentCollision.length + (found ? 0 : 1));
-                newCollision[idx] = entry;
-
-                // TERMINAL
-                return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, newCollision), mSize + (found ? 0 : 1));
-            }
-
-            // then we must be at a Node
-            Node currentNode = (Node) current;
             // take a 5-bit chunk of the hash code
             int offset = (hash >>> shift) & HASH_MASK;
             int mask = 1 << offset;
-            int childIndex = Integer.bitCount(currentNode.hasChild & (mask - 1));
-            if ((currentNode.hasChild & mask) == 0) {
-                // missing key - expand space & add the entry into the empty slot
-                Object[] children = new Object[currentNode.children.length + 1];
-                for (int i = 0; i < childIndex; ++i) {
-                    children[i] = currentNode.children[i];
+            int childIndex = Integer.bitCount(current.hasChild & (mask - 1));
+            if ((current.hasChild & mask) == 0) {
+                // missing key - expand space by 2 and add the (key,value) pair
+                Object[] children = new Object[current.children.length + 2];
+                for (int i = 0; i < 2*childIndex; ++i) {
+                    children[i] = current.children[i];
                 }
-                children[childIndex] = entry;
-                for (int i = childIndex + 1; i < children.length; ++i) {
-                    children[i] = currentNode.children[i-1];
+                children[2*childIndex] = key;
+                children[2*childIndex+1] = value;
+                for (int i = 2*childIndex; i < current.children.length; ++i) {
+                    children[i+2] = current.children[i];
                 }
                 // TERMINAL
-                return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new Node(children, currentNode.hasChild | mask)), mSize + 1);
+                return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new Node(children, current.hasChild | mask), null), mSize + 1);
 
             } else {
                 // NON-TERMINAL hash prefix collision
-                current = currentNode.children[childIndex];
-                shift += HASH_SHIFT;
-                Object[] children = Arrays.copyOf(currentNode.children, currentNode.children.length);
-                children[childIndex] = null;
-                newRoot = connect(newRoot, parent, parentIndex, new Node(children, currentNode.hasChild));
+                Object[] children = Arrays.copyOf(current.children, current.children.length);
+                newRoot = connect(newRoot, parent, parentIndex, new Node(children, current.hasChild), null);
                 parent = children;
                 parentIndex = childIndex;
-                //continue; (implicit)
+
+                Object next = current.children[2*childIndex];
+                if (next instanceof Node) {
+                    current = (Node) next;
+                    shift += HASH_SHIFT;
+                    //continue; (implicit)
+
+                } else { // leaf
+                    Object nextValue = current.children[2*childIndex+1];
+                    if (nextValue != null) {
+                        // single element leaf
+                        if (key.equals(next)) {
+                            // TERMINAL replace the existing entry (same key)
+                            return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, key, value), mSize);
+
+                        } else if (shift < Integer.SIZE) {
+                            // split into a Node (and get handled next time round the loop)
+                            int nextHash = (next.hashCode() >>> shift) & HASH_MASK;
+                            current = new Node(new Object[] { next, nextValue }, 1 << nextHash);
+                            shift += HASH_SHIFT;
+                            //continue; (implicit)
+
+                        } else {
+                            // TERMINAL generate a 4-element collision array
+                            return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new Object[] { next, nextValue, key, value }, null), mSize + 1);
+                        }
+
+                    } else {
+                        // collision leaf - just add or replace the entry in the collision list
+                        Object[] collision = (Object[]) next;
+
+                        // find the existing index of the match
+                        int idx = findCollision(collision, key);
+                        boolean found = idx < collision.length;
+                        // expand if needed, and write in the new element
+                        Object[] newCollision = Arrays.copyOf(collision, collision.length + (found ? 0 : 2));
+                        newCollision[idx] = key;
+                        newCollision[idx+1] = value;
+
+                        // TERMINAL
+                        return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, newCollision, null), mSize + (found ? 0 : 1));
+                    }
+                }
             }
         }
     }
@@ -227,67 +273,68 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
      * @param hash the hash value of key
      * @return the new version of current, with 'key' removed
      */
-    private static <K> Object removeFrom(Object current, K key, int hash, int shift) {
-        if (current instanceof Node) {
-            Node currentNode = (Node) current;
-            // take a 5-bit chunk of the hash code
-            int offset = (hash >>> shift) & HASH_MASK;
-            int mask = 1 << offset;
-            if ((currentNode.hasChild & mask) == 0) {
-                // key not found - don't modify
-                return current;
-
-            } else {
-                int childIndex = Integer.bitCount(currentNode.hasChild & (mask - 1));
-                Object currentChild = currentNode.children[childIndex];
-                Object newChild = removeFrom(currentChild, key, hash, shift + HASH_SHIFT);
-                if (currentChild == newChild) {
-                    // key not found (recursively) - don't modify
-                    return current;
-
-                } else if (newChild == null) {
-                    if (currentNode.children.length == 1) {
-                        // no children left - delete this node
-                        return null;
-
-                    } else if (currentNode.children.length == 2) {
-                        // only one child left - can 'collapse' to an Entry for the other child
-                        return currentNode.children[1 - childIndex];
-
-                    } else {
-                        // remove the child
-                        return new Node(copyWithout(currentNode.children, childIndex), currentNode.hasChild & ~mask);
-                    }
-
-                } else {
-                    // rebuild children map
-                    Object[] newChildren = Arrays.copyOf(currentNode.children, currentNode.children.length);
-                    newChildren[childIndex] = newChild;
-                    return new Node(newChildren, currentNode.hasChild);
-                }
-            }
-
-        } else if (current instanceof Entry) {
-            // if current is a match, remove it by returning null, otherwise don't modify
-            return key.equals(((Entry) current).getKey()) ? null : current;
-
-        } else { // must be an Entry[]
-            Entry<K,?>[] currentCollision = (Entry[]) current;
-            int idx = findCollision(currentCollision, key);
-
-            if (currentCollision.length <= idx) {
-                // key not found - don't modify
-                return current;
-
-            } else if (currentCollision.length == 2) {
-                // only one left - not a collision list anymore!
-                return currentCollision[2 - idx];
-
-            } else {
-                // create a new array without this entry
-                return copyWithout(currentCollision, idx);
-            }
-        }
+    private static <K> Node removeFrom(Node current, K key, int hash, int shift) {
+        return null;
+//        if (current instanceof Node) {
+//            Node currentNode = (Node) current;
+//            // take a 5-bit chunk of the hash code
+//            int offset = (hash >>> shift) & HASH_MASK;
+//            int mask = 1 << offset;
+//            if ((currentNode.hasChild & mask) == 0) {
+//                // key not found - don't modify
+//                return current;
+//
+//            } else {
+//                int childIndex = Integer.bitCount(currentNode.hasChild & (mask - 1));
+//                Object currentChild = currentNode.children[childIndex];
+//                Object newChild = removeFrom(currentChild, key, hash, shift + HASH_SHIFT);
+//                if (currentChild == newChild) {
+//                    // key not found (recursively) - don't modify
+//                    return current;
+//
+//                } else if (newChild == null) {
+//                    if (currentNode.children.length == 1) {
+//                        // no children left - delete this node
+//                        return null;
+//
+//                    } else if (currentNode.children.length == 2) {
+//                        // only one child left - can 'collapse' to an Entry for the other child
+//                        return currentNode.children[1 - childIndex];
+//
+//                    } else {
+//                        // remove the child
+//                        return new Node(copyWithout(currentNode.children, childIndex), currentNode.hasChild & ~mask);
+//                    }
+//
+//                } else {
+//                    // rebuild children map
+//                    Object[] newChildren = Arrays.copyOf(currentNode.children, currentNode.children.length);
+//                    newChildren[childIndex] = newChild;
+//                    return new Node(newChildren, currentNode.hasChild);
+//                }
+//            }
+//
+//        } else if (current instanceof Entry) {
+//            // if current is a match, remove it by returning null, otherwise don't modify
+//            return key.equals(((Entry) current).getKey()) ? null : current;
+//
+//        } else { // must be an Entry[]
+//            Entry<K,?>[] currentCollision = (Entry[]) current;
+//            int idx = findCollision(currentCollision, key);
+//
+//            if (currentCollision.length <= idx) {
+//                // key not found - don't modify
+//                return current;
+//
+//            } else if (currentCollision.length == 2) {
+//                // only one left - not a collision list anymore!
+//                return currentCollision[2 - idx];
+//
+//            } else {
+//                // create a new array without this entry
+//                return copyWithout(currentCollision, idx);
+//            }
+//        }
     }
 
     @Override
@@ -299,7 +346,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
             return this; // we were empty - still empty
         }
         // delegate to a recursive helper
-        Object newRoot = removeFrom(mRoot, key, key.hashCode(), 0);
+        Node newRoot = removeFrom(mRoot, key, key.hashCode(), 0);
         return newRoot == mRoot ? this : new HashTrieMap<K, V>(newRoot, mSize - 1);
     }
 
@@ -325,8 +372,8 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         }
 
         private void moveToNext() {
-            if (mCurrent instanceof Map.Entry[]
-                    && ((Map.Entry[]) mCurrent).length <= ++mCurrentCollisionIndex) {
+            if (mCurrent instanceof Entry[]
+                    && ((Entry[]) mCurrent).length <= ++mCurrentCollisionIndex) {
                 // do nothing - we've already advanced to the next collision node
 
             } else {
@@ -341,12 +388,12 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
                 // walk down the tree until we have found the first child from the current top of the stack
                 while (true) {
                     Object child = mNodeStack[mNodeStackPointer].children[mNodeIndexStack[mNodeStackPointer]];
-                    if (child instanceof Map.Entry) {
+                    if (child instanceof Entry) {
                         mCurrent = child;
                         return;
 
-                    } else if (child instanceof Map.Entry[]) {
-                        assert(0 < ((Map.Entry[]) child).length);
+                    } else if (child instanceof Entry[]) {
+                        assert(0 < ((Entry[]) child).length);
                         mCurrent = child;
                         mCurrentCollisionIndex = 0;
                         return;
