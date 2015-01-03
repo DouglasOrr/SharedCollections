@@ -7,28 +7,6 @@ import java.util.*;
  * but supports updates with structural sharing.
  */
 public interface PersistentMap<K,V> extends Iterable<Map.Entry<K, V>> {
-    class Entry<K, V> implements Map.Entry<K,V> {
-        private final K mKey;
-        private final V mValue;
-
-        public Entry(K key, V value) {
-            this.mKey = key;
-            this.mValue = value;
-        }
-        @Override
-        public K getKey() { return mKey; }
-        @Override
-        public V getValue() { return mValue; }
-        @Override
-        public V setValue(V object) {
-            throw new UnsupportedOperationException("setValue() mutator not possible for an immutable PersistentMap.Entry");
-        }
-        @Override
-        public String toString() {
-            return mKey + "=" + mValue;
-        }
-    }
-
     /**
      * Retreive the value associated with the given key.
      * @param key the key to look up

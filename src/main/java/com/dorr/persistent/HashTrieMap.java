@@ -1,14 +1,15 @@
 package com.dorr.persistent;
 
-import java.util.*;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * An implementation of the persistent hash trie map.
  */
 public class HashTrieMap<K,V> implements PersistentMap<K,V> {
 
-    // TODO: Clojure's implementation saves memory by putting keys & values adjacent in the children array
-    // (not using map entry pairs) - could we do this?
     private static class Node {
         // child :: Node | PersistentMap$Entry | PersistentMap$Entry[]
         public final Object[] children;
@@ -41,7 +42,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         return EMPTY;
     }
     public static <K,V> HashTrieMap<K,V> singleton(K key, V value) {
-        return new HashTrieMap<K,V>(new Entry<K,V>(key, value), 1);
+        return new HashTrieMap<K,V>(new SimpleImmutableEntry<K,V>(key, value), 1);
     }
 
     // *** Core ***
@@ -71,14 +72,14 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
                     return null;
                 }
 
-            } else if (current instanceof Entry) {
+            } else if (current instanceof SimpleImmutableEntry) {
                 // Case 2: an Entry - return the value only if the key matches
-                Entry<K, V> entry = (Entry) current;
+                SimpleImmutableEntry<K, V> entry = (SimpleImmutableEntry) current;
                 return key.equals(entry.getKey()) ? entry.getValue() : null;
 
             } else {
                 // Case 3: must be a collision (Entry[]) - do a linear search in the collision 'array map'
-                for (Entry<K,V> entry : (Entry[]) current) {
+                for (SimpleImmutableEntry<K,V> entry : (SimpleImmutableEntry[]) current) {
                     if (key.equals(entry.getKey())) {
                         return entry.getValue();
                     }
@@ -109,7 +110,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
      * @param key the key to match
      * @return the index of the entry, or <code>entries.length</code> if not found
      */
-    private static <K> int findCollision(Entry<K,?>[] entries, K key) {
+    private static <K> int findCollision(SimpleImmutableEntry<K,?>[] entries, K key) {
         int index = 0;
         while (index < entries.length) {
             if (key.equals(entries[index].getKey())) {
@@ -142,7 +143,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         }
 
         // convenience
-        final Entry<K, V> entry = new Entry<K,V>(key, value);
+        final SimpleImmutableEntry<K, V> entry = new SimpleImmutableEntry<K,V>(key, value);
         final int hash = key.hashCode();
 
         // a lot of state!
@@ -153,8 +154,8 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         int shift = 0;
         while (true) {
             // are we at a leaf (single-element or multi-element 'collision')
-            if (current instanceof Entry) {
-                Entry<K,V> currentEntry = (Entry) current;
+            if (current instanceof SimpleImmutableEntry) {
+                SimpleImmutableEntry<K,V> currentEntry = (SimpleImmutableEntry) current;
 
                 if (key.equals(currentEntry.getKey())) {
                     // TERMINAL replace the existing entry (same key)
@@ -167,18 +168,18 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
 
                 } else {
                     // TERMINAL generate a 2-element collision array
-                    return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new Entry[] { entry, currentEntry }), mSize + 1);
+                    return new HashTrieMap<K,V>(connect(newRoot, parent, parentIndex, new SimpleImmutableEntry[] { entry, currentEntry }), mSize + 1);
                 }
 
-            } else if (current instanceof Entry[]) {
+            } else if (current instanceof SimpleImmutableEntry[]) {
                 // a collision - we must be a leaf, so just add or replace the entry in the collision list
-                Entry<K,V>[] currentCollision = (Entry[]) current;
+                SimpleImmutableEntry<K,V>[] currentCollision = (SimpleImmutableEntry[]) current;
 
                 // find the existing index of the match
                 int idx = findCollision(currentCollision, key);
                 boolean found = idx < currentCollision.length;
                 // expand if needed, and write in the new element
-                Entry<K,V>[] newCollision = Arrays.copyOf(currentCollision, currentCollision.length + (found ? 0 : 1));
+                SimpleImmutableEntry<K,V>[] newCollision = Arrays.copyOf(currentCollision, currentCollision.length + (found ? 0 : 1));
                 newCollision[idx] = entry;
 
                 // TERMINAL
@@ -267,12 +268,12 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
                 }
             }
 
-        } else if (current instanceof Entry) {
+        } else if (current instanceof SimpleImmutableEntry) {
             // if current is a match, remove it by returning null, otherwise don't modify
-            return key.equals(((Entry) current).getKey()) ? null : current;
+            return key.equals(((SimpleImmutableEntry) current).getKey()) ? null : current;
 
         } else { // must be an Entry[]
-            Entry<K,?>[] currentCollision = (Entry[]) current;
+            SimpleImmutableEntry<K,?>[] currentCollision = (SimpleImmutableEntry[]) current;
             int idx = findCollision(currentCollision, key);
 
             if (currentCollision.length <= idx) {
@@ -370,9 +371,9 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         @Override
         public Map.Entry<K, V> next() {
             Map.Entry<K,V> next =
-                    (mCurrent instanceof Entry[])
-                    ? ((Entry[]) mCurrent)[mCurrentCollisionIndex]
-                    : (Entry) mCurrent;
+                    (mCurrent instanceof SimpleImmutableEntry[])
+                    ? ((SimpleImmutableEntry[]) mCurrent)[mCurrentCollisionIndex]
+                    : (SimpleImmutableEntry) mCurrent;
             moveToNext();
             return next;
         }
