@@ -3,8 +3,8 @@ package com.dorr.persistent;
 import java.util.*;
 
 /**
- * A persistent map class that does not support in-place updates,
- * but supports updates with structural sharing.
+ * A persistent map that does not support in-place updates,
+ * but supports 'copy' updates with structural sharing.
  */
 public interface PersistentMap<K,V> extends Iterable<Map.Entry<K, V>> {
     /**
