@@ -292,7 +292,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
     }
 
     @Override
-    public PersistentMap<K, V> remove(K key) {
+    public HashTrieMap<K, V> remove(K key) {
         if (key == null) {
             throw new NullPointerException("Cannot add a null key to a HashTrieMap");
         }

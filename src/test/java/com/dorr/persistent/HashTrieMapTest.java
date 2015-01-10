@@ -9,8 +9,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class HashTrieMapTest extends TestCase {
@@ -33,13 +32,22 @@ public class HashTrieMapTest extends TestCase {
     }
 
     public void testEmpty() {
-        assertThat(HashTrieMap.empty().get("foo"), nullValue());
+        HashTrieMap<Object, Object> empty = HashTrieMap.empty();
+        assertThat(empty.get("foo"), nullValue());
+        assertThat(empty.size(), is(0));
+        assertThat(empty.remove("foo"), equalTo(empty));
+        assertThat(empty.toString(), is("{}"));
     }
 
     public void testSingleton() {
         HashTrieMap<String, Integer> m = HashTrieMap.singleton("forty-two", 42);
         assertThat(m.get("forty-two"), equalTo(42));
         assertThat(m.get("one"), nullValue());
+        assertThat(m.size(), is(1));
+        assertThat(m.remove("forty-two"), equalTo(HashTrieMap.<String, Integer>empty()));
+        assertThat(m.remove("forty-two").get("forty-two"), nullValue());
+        assertThat(m.remove("one"), equalTo(m));
+        assertThat(m.remove("one").get("forty-two"), equalTo(42));
     }
 
     public void testPut() {

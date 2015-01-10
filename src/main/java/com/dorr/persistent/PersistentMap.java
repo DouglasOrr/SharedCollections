@@ -1,6 +1,6 @@
 package com.dorr.persistent;
 
-import java.util.*;
+import java.util.Map;
 
 /**
  * A persistent map that does not support in-place updates,
