@@ -1,4 +1,5 @@
 # com.dorr.persistent
+[![Build Status](https://travis-ci.org/DouglasOrr/Persistent.svg?branch=master)](https://travis-ci.org/DouglasOrr/Persistent)
 
 A very small persistent data structures library (based on Clojure's map, vector, list & set), for use in plain old Java.
 
