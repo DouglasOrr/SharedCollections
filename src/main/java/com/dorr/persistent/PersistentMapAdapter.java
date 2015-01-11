@@ -45,6 +45,10 @@ public class PersistentMapAdapter<K,V> extends AbstractMap<K,V> {
                     public K next() {
                         return entryIterator.next().getKey();
                     }
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its' iterator)");
+                    }
                 };
             }
 
