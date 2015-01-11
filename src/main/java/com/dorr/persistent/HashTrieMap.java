@@ -377,6 +377,11 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
             moveToNext();
             return next;
         }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its' iterator)");
+        }
     }
 
     // *** Other methods ***

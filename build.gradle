@@ -7,6 +7,10 @@ compileJava {
     targetCompatibility = 1.6
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:unchecked"
+}
+
 repositories {
     mavenCentral()
 }

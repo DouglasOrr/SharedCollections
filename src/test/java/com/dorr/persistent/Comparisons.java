@@ -72,7 +72,7 @@ public class Comparisons {
     public static class ClojureIPersistentMapTester<K,V> extends MapTester<K,V> {
         private final IPersistentMap mEmpty = PersistentHashMap.create();
         private IPersistentMap mMap = mEmpty;
-        @Override
+        @Override @SuppressWarnings("unchecked")
         public V get(K key) {
             return (V) mMap.valAt(key);
         }
@@ -191,7 +191,7 @@ public class Comparisons {
     public static class Performance {
         private static final int PRIME = 61;
 
-        private static void runInserts(MapTester tester, int runs, int size) {
+        private static void runInserts(MapTester<String, Integer> tester, int runs, int size) {
             for (int n = 0; n < runs; ++n) {
                 tester.reset();
                 for (int i = 0; i < size; ++i) {
