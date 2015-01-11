@@ -7,10 +7,6 @@ compileJava {
     targetCompatibility = 1.6
 }
 
-test {
-    jvmArgs '-javaagent:lib/object-explorer.jar'
-}
-
 repositories {
     mavenCentral()
 }
@@ -23,4 +19,15 @@ dependencies {
 
     testCompile 'com.google.guava:guava:18.0'
     testCompile files('lib/object-explorer.jar')
+}
+
+task runPerformance(dependsOn: 'testClasses', type: JavaExec, description: "Run the performance tests (slow)") {
+    main = 'com.dorr.persistent.Comparisons$Performance'
+    classpath = sourceSets.test.runtimeClasspath
+}
+
+task runMemory(dependsOn: 'testClasses', type: JavaExec, description: "Run the memory size tests") {
+    main = 'com.dorr.persistent.Comparisons$Memory'
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs = ['-javaagent:lib/object-explorer.jar']
 }

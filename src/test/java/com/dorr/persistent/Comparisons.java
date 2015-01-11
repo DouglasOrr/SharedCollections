@@ -6,18 +6,11 @@ import com.google.common.base.Joiner;
 import objectexplorer.Chain;
 import objectexplorer.MemoryMeasurer;
 import objectexplorer.ObjectVisitor;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import scala.Option;
 
 import java.util.*;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-public class ComparisonTest {
+public class Comparisons {
     /** Abstracts away the details of map implementations, for fair-ish comparison. */
     public static abstract class MapTester<K,V> {
         public abstract V get(K key);
@@ -76,7 +69,6 @@ public class ComparisonTest {
             mMap = new TreeMap<K, V>();
         }
     }
-
     public static class ClojureIPersistentMapTester<K,V> extends MapTester<K,V> {
         private final IPersistentMap mEmpty = PersistentHashMap.create();
         private IPersistentMap mMap = mEmpty;
@@ -128,35 +120,22 @@ public class ComparisonTest {
     public static final MapTester<String, Integer> TEST_JAVA_TREE = new JavaTreeMapTester<String, Integer>();
     public static final MapTester<String, Integer> TEST_CLOJURE = new ClojureIPersistentMapTester<String, Integer>();
     public static final MapTester<String, Integer> TEST_SCALA = new ScalaImmutableMapTester<String, Integer>(scala.collection.immutable.HashMap$.MODULE$.<String, Integer> empty());
-    public static List<Object[]> TEST_MAPS = Arrays.asList(new Object[][]{
-            {TEST_DOUG},
-            {TEST_JAVA},
-            {TEST_JAVA_TREE},
-            {TEST_CLOJURE},
-            {TEST_SCALA}
-    });
+    public static List<MapTester<String, Integer>> TEST_MAPS = Arrays.asList(
+            TEST_DOUG,
+            TEST_JAVA,
+            TEST_JAVA_TREE,
+            TEST_CLOJURE,
+            TEST_SCALA
+    );
 
-    @RunWith(Parameterized.class)
     public static class Memory {
         private static final int PRIME = 61;
 
-        @Parameterized.Parameters
-        public static Collection<Object[]> data() {
-            return TEST_MAPS;
-        }
-        private final MapTester<String, Integer> mTester;
-        public Memory(MapTester<String, Integer> tester) {
-            mTester = tester;
-        }
-
-        //@Test
-        public void dump() {
-            mTester.reset();
-            for (int i = 0; i < 10; ++i) {
-                mTester.put(Integer.toHexString(PRIME * i), i);
-            }
-            objectexplorer.ObjectExplorer.exploreObject(mTester, new ObjectVisitor<Object>() {
+        @SuppressWarnings("unused")
+        public static void dump(Object root) {
+            objectexplorer.ObjectExplorer.exploreObject(root, new ObjectVisitor<Object>() {
                 private IdentityHashMap<Object, Boolean> mExplored = new IdentityHashMap<Object, Boolean>();
+
                 @Override
                 public Traversal visit(Chain chain) {
                     if (mExplored.containsKey(chain.getValue())) {
@@ -167,24 +146,12 @@ public class ComparisonTest {
                         return Traversal.EXPLORE;
                     }
                 }
+
                 @Override
                 public Object result() {
                     return null;
                 }
             });
-        }
-
-        @Test
-        public void measureMemory() {
-            System.out.println(String.format("Size,%s", mTester));
-            for (int size = 1; size <= 1000000; size *= 10) {
-                mTester.reset();
-                for (int i = 0; i < size; ++i) {
-                    mTester.put(Integer.toHexString(PRIME * i), i);
-                }
-                long nbytes = MemoryMeasurer.measureBytes(mTester);
-                System.out.println(String.format("%d,%d", size, nbytes));
-            }
         }
 
         private static long getMemory() {
@@ -193,69 +160,67 @@ public class ComparisonTest {
             return runtime.totalMemory() - runtime.freeMemory();
         }
 
-        @Test
-        public void measureGc() {
+        public static void profile(MapTester<String, Integer> tester) {
+            System.out.println(Joiner.on(",").join("Size", tester + " (measured)", tester + " (heap)"));
             for (int size = 1; size <= 1000000; size *= 10) {
-                mTester.reset();
+                tester.reset();
                 for (int i = 0; i < size; ++i) {
-                    mTester.put(Integer.toHexString(PRIME * i), i);
+                    tester.put(Integer.toHexString(PRIME * i), i);
                 }
+                long measuredBytes = MemoryMeasurer.measureBytes(tester);
                 long usageWith = getMemory();
-                mTester.reset();
-                long usageWithout = getMemory();
-                System.out.println(String.format("   Heap %s: %d", mTester, usageWith - usageWithout));
+                tester.reset();
+                long heapDelta = usageWith - getMemory();
+
+                System.out.println(Joiner.on(',').join(size, measuredBytes, heapDelta));
+            }
+        }
+
+        /**
+         * Run the memory tests.
+         * <p>These are not considered part of the unit test suite - as they need to be run
+         * in a controlled environment.</p>
+         */
+        public static void main(String[] args) {
+            for (Comparisons.MapTester<String, Integer> tester : TEST_MAPS) {
+                profile(tester);
             }
         }
     }
 
-    @RunWith(Parameterized.class)
     public static class Performance {
         private static final int PRIME = 61;
 
-        @Parameterized.Parameters
-        public static Collection<Object[]> data() {
-            return TEST_MAPS;
-        }
-        private final MapTester<String, Integer> mTester;
-        public Performance(MapTester<String, Integer> tester) {
-            mTester = tester;
-        }
-
-        private void run(int runs, int size, boolean query, boolean miss) {
+        private static void runInserts(MapTester tester, int runs, int size) {
             for (int n = 0; n < runs; ++n) {
-                mTester.reset();
+                tester.reset();
                 for (int i = 0; i < size; ++i) {
-                    mTester.put(Integer.toHexString(PRIME * i), i + n);
-                }
-                if (query) {
-                    for (int i = 0; i < size; ++i) {
-                        assertThat(mTester.get(Integer.toHexString(PRIME * i)), equalTo(i + n));
-                    }
-                }
-                if (miss) {
-                    for (int i = 0; i < size; ++i) {
-                        assertThat(mTester.get(Integer.toHexString(PRIME * i + 1)), nullValue());
-                    }
+                    tester.put(Integer.toHexString(PRIME * i), i + n);
                 }
             }
         }
 
-        @Test
-        public void profile() {
-            System.out.println(Joiner.on(',').join("Size", mTester)); // mTester + " insert", mTester + "insert+query", mTester + "insert+miss"
+        public static void profile(MapTester<String, Integer> tester) {
+            System.out.println(Joiner.on(',').join("Size", tester));
             for (int size = 10; size <= 1000000; size *= 10) {
                 int runs = 100000000 / size;
 
                 long t0 = System.nanoTime();
-                run(runs, size, false, false);
+                runInserts(tester, runs, size);
                 long t1 = System.nanoTime();
-//                run(runs, size, true, false);
-//                long t2 = System.nanoTime();
-//                run(runs, size, false, false);
-//                long t3 = System.nanoTime();
 
-                double div = 1.0E3 * runs * size;
-                System.out.println(Joiner.on(',').join(size, (t1 - t0) / div)); // , (t2 - t1) / div, (t3 - t2) / div
+                System.out.println(Joiner.on(',').join(size, (t1 - t0) / (1.0E3 * runs * size)));
+            }
+        }
+
+        /**
+         * Run the performance tests.
+         * <p>These are not considered part of the unit test suite - as they need to be run
+         * in a controlled environment, and are slow.</p>
+         */
+        public static void main(String[] args) {
+            for (Comparisons.MapTester<String, Integer> tester : TEST_MAPS) {
+                profile(tester);
             }
         }
     }
