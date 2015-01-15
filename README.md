@@ -7,6 +7,10 @@ A very small persistent data structures library (based on Clojure's map, vector,
 
 
 
+## Reference
+
+ - [Phil Bagwell's original paper](http://lampwww.epfl.ch/papers/idealhashtrees.pdf) describing the Hash Array Mapped Trie
+
 ## Development
 
 The aim of the project is to be usable in any Java project, with minimum fuss, to make it easier to develop safe, simple, programs for various purposes.

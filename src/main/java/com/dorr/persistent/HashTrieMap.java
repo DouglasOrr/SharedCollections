@@ -45,6 +45,27 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         return new HashTrieMap<K,V>(new SimpleImmutableEntry<K,V>(key, value), 1);
     }
 
+    /**
+     * Create a map containing the given key-value pairs.
+     * <p>For example:</p>
+     * <code>HashTrieMap.of("one", 1, "two", 2, "three", 3);</code>
+     * @param key the first key
+     * @param value the first values
+     * @param keyValues an even number of keys (type K), and values (type V), in which
+     *                  later mappings will overwrite earlier ones
+     * @return a map containing all of the key-value mappings
+     */
+    public static <K,V> HashTrieMap<K,V> of(K key, V value, Object... keyValues) {
+        if (keyValues.length % 2 != 0) {
+            throw new IllegalArgumentException("HashTrieMap.of() called with an odd number of keyValues (cannot partition them into pairs)");
+        }
+        HashTrieMap<K,V> m = singleton(key, value);
+        for (int i = 0; i < keyValues.length; i += 2) {
+            m = m.put((K) keyValues[i], (V) keyValues[i+1]);
+        }
+        return m;
+    }
+
     // *** Core ***
 
     @Override
