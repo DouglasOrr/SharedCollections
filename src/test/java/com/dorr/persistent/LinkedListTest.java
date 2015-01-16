@@ -38,8 +38,8 @@ public class LinkedListTest {
     @Test
     public void testPrepend() {
         LinkedList<Integer> empty = LinkedList.empty();
-        LinkedList<Integer> singleton = empty.prepend(42);
-        LinkedList<Integer> tri = singleton.prepend(20).prepend(10);
+        LinkedList<Integer> singleton = empty.after(42);
+        LinkedList<Integer> tri = singleton.after(20).after(10);
 
         assertThat(empty, hasSize(0));
         assertThat(singleton, hasSize(1));

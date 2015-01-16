@@ -1,14 +1,12 @@
 package com.dorr.persistent;
 
+import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
 
 /**
  * An implementation of the persistent hash trie map.
  */
-public class HashTrieMap<K,V> implements PersistentMap<K,V> {
+public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<K,V> {
 
     private static class Node {
         // child :: Node | PersistentMap$Entry | PersistentMap$Entry[]
@@ -27,6 +25,9 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
     private final int mSize;
     private static final int HASH_MASK = 0x001F;
     private static final int HASH_SHIFT = 5;
+    // cached implementations
+    private transient Set<Entry<K, V>> mEntrySet = null;
+    private transient Set<K> mKeySet = null;
 
     private HashTrieMap(Object root, int size) {
         mRoot = root;
@@ -61,15 +62,93 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         }
         HashTrieMap<K,V> m = singleton(key, value);
         for (int i = 0; i < keyValues.length; i += 2) {
-            m = m.put((K) keyValues[i], (V) keyValues[i+1]);
+            m = m.with((K) keyValues[i], (V) keyValues[i + 1]);
         }
         return m;
+    }
+
+    // *** AbstractMap ***
+
+    private class EntrySet extends AbstractSet<Entry<K, V>> {
+        @Override
+        public Iterator<Entry<K, V>> iterator() {
+            return new DepthFirstIterator<K, V>(HashTrieMap.this.mRoot);
+        }
+
+        @Override
+        public int size() {
+            return HashTrieMap.this.size();
+        }
+
+        // overridden for performance
+        @Override
+        public boolean contains(Object o) {
+            Entry<K,V> mapping = (Entry) o;
+            K key = mapping.getKey();
+            return key != null && mapping.getValue().equals(HashTrieMap.this.get(key));
+        }
+    }
+
+    private class KeySet extends AbstractSet<K> {
+        @Override
+        public Iterator<K> iterator() {
+            final Iterator<Entry<K,V>> entryIterator = new DepthFirstIterator<K, V>(HashTrieMap.this.mRoot);
+            return new Iterator<K>() {
+                @Override
+                public boolean hasNext() {
+                    return entryIterator.hasNext();
+                }
+                @Override
+                public K next() {
+                    return entryIterator.next().getKey();
+                }
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its' iterator)");
+                }
+            };
+        }
+
+        @Override
+        public int size() {
+            return HashTrieMap.this.size();
+        }
+
+        // overridden for performance
+        @Override
+        public boolean contains(Object key) {
+            return HashTrieMap.this.get(key) != null;
+        }
+    }
+
+    @Override
+    public Set<Entry<K, V>> entrySet() {
+        Set<Entry<K, V>> s = mEntrySet;
+        return s != null ? s : (mEntrySet = new EntrySet());
+    }
+
+    // overridden for performance
+    @Override
+    public Set<K> keySet() {
+        Set<K> s = mKeySet;
+        return s != null ? s : (mKeySet = new KeySet());
+    }
+
+    // overridden for performance
+    @Override
+    public boolean containsKey(Object key) {
+        return get(key) != null;
     }
 
     // *** Core ***
 
     @Override
-    public V get(K key) {
+    public int size() {
+        return mSize;
+    }
+
+    @Override
+    public V get(Object key) {
         if (key == null || mRoot == null) {
             return null;
         }
@@ -110,7 +189,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         }
     }
 
-    // helper function to implement 'put'
+    // helper function to implement 'with'
     // connects up the object 'next' to the trie between 'root' & 'parent'
     // returns the new value of the trie root
     private static Object connect(Object root, Object[] parent, int parentIndex, Object next) {
@@ -151,7 +230,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
     }
 
     @Override
-    public HashTrieMap<K, V> put(K key, V value) {
+    public HashTrieMap<K, V> with(K key, V value) {
         if (key == null) {
             throw new NullPointerException("Cannot add a null key to a HashTrieMap");
         }
@@ -241,8 +320,8 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
     }
 
     /**
-     * Helper function for the implementation of {@link #remove(Object)}.
-     * Sadly we must use this recursive method of removal (we cannot be iterative, like put),
+     * Helper function for the implementation of {@link #without(Object)}.
+     * Sadly we must use this recursive method of removal (we cannot be iterative, like with),
      * as we don't always know if a parent node will be deleted until we reach the leaf.
      * @param current the current node, collision list, or entry
      * @param key the key to be removed
@@ -313,7 +392,7 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
     }
 
     @Override
-    public HashTrieMap<K, V> remove(K key) {
+    public HashTrieMap<K, V> without(K key) {
         if (key == null) {
             throw new NullPointerException("Cannot add a null key to a HashTrieMap");
         }
@@ -403,66 +482,5 @@ public class HashTrieMap<K,V> implements PersistentMap<K,V> {
         public void remove() {
             throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its' iterator)");
         }
-    }
-
-    // *** Other methods ***
-
-    @Override
-    public int size() {
-        return mSize;
-    }
-
-    @Override
-    public Map<K, V> asMap() {
-        return new PersistentMapAdapter<K, V>(this);
-    }
-
-    @Override
-    public Iterator<Map.Entry<K, V>> iterator() {
-        return new DepthFirstIterator<K, V>(mRoot);
-    }
-
-    @Override
-    public boolean equals(Object _that) {
-        if (_that == this) {
-            return true;
-
-        } else if (!(_that instanceof PersistentMap)) {
-            return false;
-
-        } else {
-            PersistentMap<K,V> that = (PersistentMap) _that;
-            if (this.size() != that.size()) {
-                return false;
-            }
-            for (Map.Entry<K,V> thisEntry : this) {
-                if (!thisEntry.getValue().equals(that.get(thisEntry.getKey()))) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 0;
-        for (Map.Entry<K,V> entry : this) {
-            hash += entry.hashCode();
-        }
-        return hash;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("{");
-        boolean separate = false;
-        for (Map.Entry<K,V> entry : this) {
-            if (separate) { sb.append(", "); }
-            sb.append(entry);
-            separate = true;
-        }
-        sb.append("}");
-        return sb.toString();
     }
 }

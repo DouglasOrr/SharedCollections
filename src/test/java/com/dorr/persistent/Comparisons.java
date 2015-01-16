@@ -30,7 +30,7 @@ public class Comparisons {
         }
         @Override
         public void put(K key, V value) {
-            mMap = mMap.put(key, value);
+            mMap = mMap.with(key, value);
         }
         @Override
         public void reset() {

@@ -26,5 +26,5 @@ public interface PersistentList<T> extends List<T> {
      * (The original list is unmodified.)
      * @param head the head of the returned list.
      */
-    PersistentList<T> prepend(T head);
+    PersistentList<T> after(T head);
 }
