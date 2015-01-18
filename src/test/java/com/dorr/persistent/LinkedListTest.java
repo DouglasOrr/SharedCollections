@@ -1,13 +1,12 @@
 package com.dorr.persistent;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ListIterator;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.*;
@@ -16,7 +15,14 @@ import static org.junit.Assert.assertThat;
 public class LinkedListTest {
     @Test
     public void testEmpty() {
-        for (LinkedList<? extends Object> empty : asList(LinkedList.EMPTY, LinkedList.empty())) {
+        for (LinkedList<?> empty : asList(
+                LinkedList.EMPTY,
+                LinkedList.empty(),
+                LinkedList.of(),
+                new LinkedList<Object>(),
+                new LinkedList<Object>(Collections.emptySet()),
+                new LinkedList<Object>(new ArrayList<Object>())
+        )) {
             assertThat(empty, Matchers.empty());
             assertThat(empty, hasSize(0));
             assertThat(empty.iterator().hasNext(), is(false));
@@ -60,6 +66,15 @@ public class LinkedListTest {
         assertThat(empty, Matchers.<Collection<Integer>> equalTo(Collections.<Integer>emptyList()));
         assertThat(singleton, Matchers.<Collection<Integer>> equalTo(asList(42)));
         assertThat(tri, Matchers.<Collection<Integer>> equalTo(ImmutableList.of(10, 20, 42)));
+    }
+
+    @Test
+    public void testConstruction() {
+        LinkedList<Integer> oneTwoThree = LinkedList.of(1, 2, 3);
+        assertThat(oneTwoThree, contains(1, 2, 3));
+        assertThat("structural sharing", new LinkedList<Integer>(oneTwoThree).tail(), sameInstance(oneTwoThree.tail()));
+        assertThat(new LinkedList<Integer>(asList(1, 2, 3)), contains(1, 2, 3));
+        assertThat(new LinkedList<Integer>(ImmutableSet.of(1, 2, 3)), containsInAnyOrder(1, 2, 3));
     }
 
     @Test
