@@ -35,24 +35,24 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
     }
 
     // *** Factories ***
+
     public HashTrieMap() {
         this(null, 0);
     }
     public HashTrieMap(Map<? extends K, ? extends V> m) {
+        HashTrieMap<K,V> hashMap;
         if (m instanceof HashTrieMap) {
             // O(1) copy - we can just view the same data
-            HashTrieMap hashM = (HashTrieMap) m;
-            mRoot = hashM.mRoot;
-            mSize = hashM.mSize;
+            hashMap = (HashTrieMap) m;
         } else {
             // O(n log(n)) copy from a general Map
-            HashTrieMap<K, V> tmp = empty();
+            hashMap = empty();
             for (Map.Entry<? extends K, ? extends V> entry : m.entrySet()) {
-                tmp = tmp.with(entry.getKey(), entry.getValue());
+                hashMap = hashMap.with(entry.getKey(), entry.getValue());
             }
-            mRoot = tmp.mRoot;
-            mSize = tmp.mSize;
         }
+        mRoot = hashMap.mRoot;
+        mSize = hashMap.mSize;
     }
     public static final HashTrieMap EMPTY = new HashTrieMap(null, 0);
     public static <K,V> HashTrieMap<K,V> empty() {
@@ -156,7 +156,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
         return get(key) != null;
     }
 
-    // *** Core ***
+    // *** PersistentMap ***
 
     @Override
     public int size() {

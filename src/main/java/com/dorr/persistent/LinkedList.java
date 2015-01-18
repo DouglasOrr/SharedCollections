@@ -5,59 +5,37 @@ import java.util.*;
 /**
  * Very simple implementation of a persistent singly-linked list.
  */
-public abstract class LinkedList<T> extends AbstractSequentialList<T> implements PersistentList<T> {
-    /**
-     * Implements the empty list (contains no elements, calls to head()/tail() disallowed).
-     */
-    public static final class Empty<T> extends LinkedList<T> {
-        @Override
-        public int size() {
-            return 0;
-        }
+public class LinkedList<T> extends AbstractSequentialList<T> implements PersistentList<T> {
+    private final T mHead;
+    private final LinkedList<T> mTail;
+    private final int mSize;
 
-        // Not allowed to call these on the Empty list
-        @Override
-        public T head() {
-            throw new NoSuchElementException("Head of an empty list");
-        }
-        @Override
-        public LinkedList<T> tail() {
-            throw new NoSuchElementException("Tail of an empty lsit");
-        }
+    private LinkedList(T head, LinkedList<T> tail) {
+        mHead = head;
+        mTail = tail;
+        mSize = (head == null ? 0 : 1 + tail.size());
     }
 
-    /**
-     * Implements a prepended element onto the front of a LinkedList.
-     */
-    public static class Cons<T> extends LinkedList<T> {
-        private final T mHead;
-        private final LinkedList<T> mTail;
-        private final int mSize;
+    // *** Factories ***
 
-        public Cons(T head, LinkedList<T> tail) {
-            mHead = head;
-            mTail = tail;
-            mSize = tail.size() + 1;
-        }
-
-        @Override
-        public int size() {
-            return mSize;
-        }
-
-        @Override
-        public T head() {
-            return mHead;
-        }
-
-        @Override
-        public LinkedList<T> tail() {
-            return mTail;
-        }
+    public LinkedList() {
+        this(null, null);
     }
-
-    // Factories
-    public static final LinkedList<?> EMPTY = new Empty();
+    public LinkedList(Collection<? extends T> c) {
+        LinkedList<T> linkedList;
+        if (c instanceof LinkedList) {
+            // O(1) copy - we can just view the same data
+            linkedList = (LinkedList<T>) c;
+        } else {
+            // O(n) copy, also requiring working memory (otherwise the 'obvious' implementation
+            // would reverse the elements of c)
+            linkedList = LinkedList.of((T[]) c.toArray());
+        }
+        mHead = linkedList.mHead;
+        mTail = linkedList.mTail;
+        mSize = linkedList.mSize;
+    }
+    public static final LinkedList<?> EMPTY = new LinkedList();
     public static <T> LinkedList<T> empty() { return (LinkedList<T>) EMPTY; }
     public static <T> LinkedList<T> of(T... elements) {
         LinkedList<T> head = empty();
@@ -67,17 +45,32 @@ public abstract class LinkedList<T> extends AbstractSequentialList<T> implements
         return head;
     }
 
-    // PersistentList implementation
+    // *** PersistentList ***
 
     @Override
     public LinkedList<T> prepend(T head) {
-        return new Cons<T>(head, this);
+        return new LinkedList<T>(head, this);
     }
 
     @Override
-    public abstract LinkedList<T> tail();
+    public T head() throws NoSuchElementException {
+        if (mHead == null) {
+            throw new NoSuchElementException("Head of an empty list");
+        } else {
+            return mHead;
+        }
+    }
 
-    // java.util.List implementation
+    @Override
+    public LinkedList<T> tail() {
+        if (mTail == null) {
+            throw new NoSuchElementException("Tail of an empty list");
+        } else {
+            return mTail;
+        }
+    }
+
+    // *** AbstractList ***
 
     @Override
     public ListIterator<T> listIterator(final int startIndex) {
@@ -137,5 +130,10 @@ public abstract class LinkedList<T> extends AbstractSequentialList<T> implements
                 throw new UnsupportedOperationException("Mutable method called on immutable list");
             }
         };
+    }
+
+    @Override
+    public int size() {
+        return mSize;
     }
 }
