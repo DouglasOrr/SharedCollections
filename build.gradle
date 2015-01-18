@@ -11,6 +11,10 @@ tasks.withType(JavaCompile) {
     options.compilerArgs << "-Xlint:unchecked"
 }
 
+tasks.withType(Javadoc) {
+    options.addStringOption("link", "http://docs.oracle.com/javase/7/docs/api")
+}
+
 repositories {
     mavenCentral()
 }

@@ -62,7 +62,7 @@ public abstract class LinkedList<T> extends AbstractSequentialList<T> implements
     public static <T> LinkedList<T> of(T... elements) {
         LinkedList<T> head = empty();
         for (int i = elements.length - 1; 0 <= i; --i) {
-            head = head.after(elements[i]);
+            head = head.prepend(elements[i]);
         }
         return head;
     }
@@ -70,7 +70,7 @@ public abstract class LinkedList<T> extends AbstractSequentialList<T> implements
     // PersistentList implementation
 
     @Override
-    public LinkedList<T> after(T head) {
+    public LinkedList<T> prepend(T head) {
         return new Cons<T>(head, this);
     }
 

@@ -38,6 +38,22 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
     public HashTrieMap() {
         this(null, 0);
     }
+    public HashTrieMap(Map<? extends K, ? extends V> m) {
+        if (m instanceof HashTrieMap) {
+            // O(1) copy - we can just view the same data
+            HashTrieMap hashM = (HashTrieMap) m;
+            mRoot = hashM.mRoot;
+            mSize = hashM.mSize;
+        } else {
+            // O(n log(n)) copy from a general Map
+            HashTrieMap<K, V> tmp = empty();
+            for (Map.Entry<? extends K, ? extends V> entry : m.entrySet()) {
+                tmp = tmp.with(entry.getKey(), entry.getValue());
+            }
+            mRoot = tmp.mRoot;
+            mSize = tmp.mSize;
+        }
+    }
     public static final HashTrieMap EMPTY = new HashTrieMap(null, 0);
     public static <K,V> HashTrieMap<K,V> empty() {
         return EMPTY;
