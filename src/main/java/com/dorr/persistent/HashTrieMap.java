@@ -248,8 +248,8 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
      * @param index the index to remove (must be < original.length)
      * @return a new array, as original but without the element at index
      */
-    private static Object[] copyWithout(Object[] original, int index) {
-        Object[] result = new Object[original.length - 1];
+    private static <T> T[] copyWithout(Class<T> tClass, T[] original, int index) {
+        T[] result = (T[]) Array.newInstance(tClass, original.length - 1);
         for (int i = 0; i < result.length; ++i) {
             result[i] = original[i + (index <= i ? 1 : 0)];
         }
@@ -384,7 +384,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
 
                     } else {
                         // remove the child
-                        return new Node(copyWithout(currentNode.children, childIndex), currentNode.hasChild & ~mask);
+                        return new Node(copyWithout(Object.class, currentNode.children, childIndex), currentNode.hasChild & ~mask);
                     }
 
                 } else {
@@ -413,7 +413,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
 
             } else {
                 // create a new array without this entry
-                return copyWithout(currentCollision, idx);
+                return copyWithout(SimpleImmutableEntry.class, currentCollision, idx);
             }
         }
     }
@@ -453,8 +453,8 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
         }
 
         private void moveToNext() {
-            if (mCurrent instanceof Map.Entry[]
-                    && ++mCurrentCollisionIndex < ((Map.Entry[]) mCurrent).length) {
+            if (mCurrent instanceof SimpleImmutableEntry[]
+                    && ++mCurrentCollisionIndex < ((SimpleImmutableEntry[]) mCurrent).length) {
                 // do nothing - we've already advanced to the next collision node
 
             } else if (mNodeStackPointer < 0) {
@@ -473,12 +473,12 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
                 // walk down the tree until we have found the first child from the current top of the stack
                 while (true) {
                     Object child = mNodeStack[mNodeStackPointer].children[mNodeIndexStack[mNodeStackPointer]];
-                    if (child instanceof Map.Entry) {
+                    if (child instanceof SimpleImmutableEntry) {
                         mCurrent = child;
                         return;
 
-                    } else if (child instanceof Map.Entry[]) {
-                        assert(0 < ((Map.Entry[]) child).length);
+                    } else if (child instanceof SimpleImmutableEntry[]) {
+                        assert(0 < ((SimpleImmutableEntry[]) child).length);
                         mCurrent = child;
                         mCurrentCollisionIndex = 0;
                         return;
