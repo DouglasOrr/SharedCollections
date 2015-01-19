@@ -3,11 +3,9 @@ package com.dorr.persistent;
 import com.google.common.collect.ImmutableMap;
 import junit.framework.TestCase;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,11 +30,20 @@ public class HashTrieMapTest extends TestCase {
     }
 
     public void testEmpty() {
-        HashTrieMap<Object, Object> empty = HashTrieMap.empty();
-        assertThat(empty.get("foo"), nullValue());
-        assertThat(empty.size(), is(0));
-        assertThat(empty.without("foo"), equalTo(empty));
-        assertThat(empty.toString(), is("{}"));
+        for (HashTrieMap<Object,Object> empty : Arrays.asList(
+                HashTrieMap.EMPTY,
+                HashTrieMap.empty(),
+                HashTrieMap.of(),
+                new HashTrieMap<Object, Object>(),
+                new HashTrieMap<Object, Object>(Collections.emptyMap()),
+                new HashTrieMap<Object, Object>(new HashMap<Object, Object>())
+        )) {
+            assertThat(empty.size(), is(0));
+            assertThat(empty.get("foo"), nullValue());
+            assertThat(empty.without("foo"), sameInstance(empty));
+            assertThat(empty.toString(), is("{}"));
+            assertThat(empty, equalTo(Collections.emptyMap()));
+        }
     }
 
     public void testSingleton() {
@@ -44,13 +51,11 @@ public class HashTrieMapTest extends TestCase {
         assertThat(m.get("forty-two"), equalTo(42));
         assertThat(m.get("one"), nullValue());
         assertThat(m.size(), is(1));
-        assertThat(m.without("forty-two"), equalTo(HashTrieMap.<String, Integer>empty()));
-        assertThat(m.without("forty-two").get("forty-two"), nullValue());
-        assertThat(m.without("one"), equalTo(m));
-        assertThat(m.without("one").get("forty-two"), equalTo(42));
+        assertThat(m, Matchers.<Map<String, Integer>> equalTo(ImmutableMap.of("forty-two", 42)));
+        assertThat(m.without("forty-two"), equalTo(HashTrieMap.<String, Integer> empty()));
     }
 
-    public void testPut() {
+    public void testWith() {
         HashTrieMap<String, Integer> empty = HashTrieMap.empty();
         assertThat(empty.with("one", 1).get("one"), equalTo(1));
         assertThat(empty.with("one", 1).with("one", 100).get("one"), equalTo(100));
@@ -60,15 +65,14 @@ public class HashTrieMapTest extends TestCase {
         assertThat(m.get("onehundred"), equalTo(100));
         assertThat(m.get("twenty-two"), equalTo(22));
         assertThat(m.get("two"), nullValue());
-        System.out.println("Map: " + m);
     }
 
-    public void testRemove() {
+    public void testWithout() {
         HashTrieMap<String, Integer> m = HashTrieMap.<String, Integer>empty().with("one", 1).with("two", 2);
         assertThat(m.get("one"), equalTo(1));
         assertThat(m.without("one").get("one"), nullValue());
         assertThat(m.without("one").get("two"), equalTo(2));
-        assertThat(m.without("three").get("one"), equalTo(1)); // remove missing
+        assertThat(m.without("three"), sameInstance(m)); // remove missing
     }
 
     public void testIterate() {

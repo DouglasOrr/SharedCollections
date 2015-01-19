@@ -62,6 +62,9 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
         return new HashTrieMap<K,V>(new SimpleImmutableEntry<K,V>(key, value), 1);
     }
 
+    public static <K,V> HashTrieMap<K,V> of() {
+        return EMPTY;
+    }
     /**
      * Create a map containing the given key-value pairs.
      * <p>For example:</p>
@@ -446,6 +449,10 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
                     && ((Map.Entry[]) mCurrent).length <= ++mCurrentCollisionIndex) {
                 // do nothing - we've already advanced to the next collision node
 
+            } else if (mNodeStackPointer < 0) {
+                // this can happen in a singleton set - where the node stack is empty even though we have an element
+                mCurrent = null;
+
             } else {
                 // walk up the tree until we have successfully advanced to the next child
                 while (mNodeStack[mNodeStackPointer].children.length <= ++mNodeIndexStack[mNodeStackPointer]) {
@@ -496,7 +503,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
 
         @Override
         public void remove() {
-            throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its' iterator)");
+            throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its iterator)");
         }
     }
 }
