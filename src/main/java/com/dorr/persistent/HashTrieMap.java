@@ -1,5 +1,6 @@
 package com.dorr.persistent;
 
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
 
@@ -104,7 +105,8 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
         public boolean contains(Object o) {
             Entry<K,V> mapping = (Entry) o;
             K key = mapping.getKey();
-            return key != null && mapping.getValue().equals(HashTrieMap.this.get(key));
+            V value = mapping.getValue();
+            return key != null && value != null && value.equals(HashTrieMap.this.get(key));
         }
     }
 
@@ -240,10 +242,16 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
         return index;
     }
 
-    private static <T> T[] copyWithout(T[] original, int index) {
-        T[] result = Arrays.copyOf(original, original.length - 1);
-        if (index < original.length - 1) {
-            result[index] = original[original.length - 1];
+    /**
+     * Create a copy of an array, without the element at 'index', preserving order
+     * @param original an array to copy (of at least one element)
+     * @param index the index to remove (must be < original.length)
+     * @return a new array, as original but without the element at index
+     */
+    private static Object[] copyWithout(Object[] original, int index) {
+        Object[] result = new Object[original.length - 1];
+        for (int i = 0; i < result.length; ++i) {
+            result[i] = original[i + (index <= i ? 1 : 0)];
         }
         return result;
     }
@@ -401,7 +409,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
 
             } else if (currentCollision.length == 2) {
                 // only one left - not a collision list anymore!
-                return currentCollision[2 - idx];
+                return currentCollision[1 - idx];
 
             } else {
                 // create a new array without this entry
@@ -446,7 +454,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
 
         private void moveToNext() {
             if (mCurrent instanceof Map.Entry[]
-                    && ((Map.Entry[]) mCurrent).length <= ++mCurrentCollisionIndex) {
+                    && ++mCurrentCollisionIndex < ((Map.Entry[]) mCurrent).length) {
                 // do nothing - we've already advanced to the next collision node
 
             } else if (mNodeStackPointer < 0) {

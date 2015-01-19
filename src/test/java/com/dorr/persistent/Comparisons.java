@@ -1,125 +1,18 @@
 package com.dorr.persistent;
 
-import clojure.lang.IPersistentMap;
-import clojure.lang.PersistentHashMap;
 import com.google.common.base.Joiner;
 import objectexplorer.Chain;
 import objectexplorer.MemoryMeasurer;
 import objectexplorer.ObjectVisitor;
-import scala.Option;
 
 import java.util.*;
 
 public class Comparisons {
-    /** Abstracts away the details of map implementations, for fair-ish comparison. */
-    public static abstract class MapTester<K,V> {
-        public abstract V get(K key);
-        public abstract void put(K key, V value);
-        public abstract void reset();
-    }
-    public static class PersistentMapTester<K,V> extends MapTester<K,V> {
-        private final PersistentMap<K,V> mEmpty;
-        private PersistentMap<K,V> mMap;
-        public PersistentMapTester(PersistentMap<K,V> empty) {
-            mEmpty = empty;
-            mMap = empty;
-        }
-        @Override
-        public V get(K key) {
-            return mMap.get(key);
-        }
-        @Override
-        public void put(K key, V value) {
-            mMap = mMap.with(key, value);
-        }
-        @Override
-        public void reset() {
-            mMap = mEmpty;
-        }
-        @Override
-        public String toString() {
-            return mMap.getClass().getName();
-        }
-    }
-    public static abstract class JavaMapTester<K,V> extends MapTester<K,V> {
-        protected Map<K,V> mMap;
-        { reset(); }
-        @Override
-        public V get(K key) {
-            return mMap.get(key);
-        }
-        @Override
-        public void put(K key, V value) {
-            mMap.put(key, value);
-        }
-        @Override
-        public String toString() {
-            return mMap.getClass().getName();
-        }
-    }
-    public static class JavaHashMapTester<K,V> extends JavaMapTester<K,V> {
-        @Override
-        public void reset() {
-            mMap = new HashMap<K, V>();
-        }
-    }
-    public static class JavaTreeMapTester<K,V> extends JavaMapTester<K,V> {
-        @Override
-        public void reset() {
-            mMap = new TreeMap<K, V>();
-        }
-    }
-    public static class ClojureIPersistentMapTester<K,V> extends MapTester<K,V> {
-        private final IPersistentMap mEmpty = PersistentHashMap.create();
-        private IPersistentMap mMap = mEmpty;
-        @Override @SuppressWarnings("unchecked")
-        public V get(K key) {
-            return (V) mMap.valAt(key);
-        }
-        @Override
-        public void put(K key, V value) {
-            mMap = mMap.assoc(key, value);
-        }
-        @Override
-        public void reset() {
-            mMap = mEmpty;
-        }
-        @Override
-        public String toString() {
-            return mMap.getClass().getName();
-        }
-    }
-    public static class ScalaImmutableMapTester<K,V> extends MapTester<K,V> {
-        private final scala.collection.immutable.Map<K,V> mEmpty;
-        private scala.collection.immutable.Map<K,V> mMap;
-        public ScalaImmutableMapTester(scala.collection.immutable.Map<K,V> empty) {
-            mEmpty = empty;
-            mMap = empty;
-        }
-        @Override
-        public V get(K key) {
-            Option<V> opt = mMap.get(key);
-            return opt.isDefined() ? opt.get() : null;
-        }
-        @Override
-        public void put(K key, V value) {
-            mMap = mMap.updated(key, value);
-        }
-        @Override
-        public void reset() {
-            mMap = mEmpty;
-        }
-        @Override
-        public String toString() {
-            return mMap.getClass().getName();
-        }
-    }
-
-    public static final MapTester<String, Integer> TEST_DOUG = new PersistentMapTester<String, Integer>(HashTrieMap.<String, Integer> empty());
-    public static final MapTester<String, Integer> TEST_JAVA = new JavaHashMapTester<String, Integer>();
-    public static final MapTester<String, Integer> TEST_JAVA_TREE = new JavaTreeMapTester<String, Integer>();
-    public static final MapTester<String, Integer> TEST_CLOJURE = new ClojureIPersistentMapTester<String, Integer>();
-    public static final MapTester<String, Integer> TEST_SCALA = new ScalaImmutableMapTester<String, Integer>(scala.collection.immutable.HashMap$.MODULE$.<String, Integer> empty());
+    public static final MapTester<String, Integer> TEST_DOUG = new MapTester.PersistentMapTester<String, Integer>(HashTrieMap.<String, Integer> empty());
+    public static final MapTester<String, Integer> TEST_JAVA = new MapTester.JavaHashMapTester<String, Integer>();
+    public static final MapTester<String, Integer> TEST_JAVA_TREE = new MapTester.JavaTreeMapTester<String, Integer>();
+    public static final MapTester<String, Integer> TEST_CLOJURE = new MapTester.ClojureIPersistentMapTester<String, Integer>();
+    public static final MapTester<String, Integer> TEST_SCALA = new MapTester.ScalaImmutableMapTester<String, Integer>(scala.collection.immutable.HashMap$.MODULE$.<String, Integer> empty());
     public static List<MapTester<String, Integer>> TEST_MAPS = Arrays.asList(
             TEST_DOUG,
             TEST_JAVA,
@@ -182,7 +75,7 @@ public class Comparisons {
          * in a controlled environment.</p>
          */
         public static void main(String[] args) {
-            for (Comparisons.MapTester<String, Integer> tester : TEST_MAPS) {
+            for (MapTester<String, Integer> tester : TEST_MAPS) {
                 profile(tester);
             }
         }
@@ -219,7 +112,7 @@ public class Comparisons {
          * in a controlled environment, and are slow.</p>
          */
         public static void main(String[] args) {
-            for (Comparisons.MapTester<String, Integer> tester : TEST_MAPS) {
+            for (MapTester<String, Integer> tester : TEST_MAPS) {
                 profile(tester);
             }
         }
