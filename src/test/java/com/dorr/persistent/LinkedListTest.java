@@ -80,12 +80,23 @@ public class LinkedListTest {
     @Test
     public void testListIterator() {
         ListIterator<Integer> it = LinkedList.of(10, 20, 30).listIterator();
+
+        // initial state
         assertThat(it.hasNext(), is(true));
+        assertThat(it.nextIndex(), is(0));
+        assertThat(it.previousIndex(), is(-1));
+        assertThat(it.hasPrevious(), is(false));
+
+        // advancing
         assertThat(it.next(), is(10));
+        assertThat(it.nextIndex(), is(1));
         assertThat(it.next(), is(20));
+        assertThat(it.nextIndex(), is(2));
         assertThat(it.next(), is(30));
+        assertThat(it.nextIndex(), is(3));
         assertThat(it.hasNext(), is(false));
 
+        // start with offset
         it = LinkedList.of(10, 20, 30).listIterator(2);
         assertThat(it.next(), is(30));
         assertThat(it.hasNext(), is(false));
@@ -107,5 +118,28 @@ public class LinkedListTest {
     @Test(expected=IndexOutOfBoundsException.class)
     public void testListIteratorStartBeforeBounds() {
         LinkedList.of(1,2,3).listIterator(-1);
+    }
+
+    @Test(expected=UnsupportedOperationException.class)
+    public void testListIteratorBackwardsNotSupported() {
+        ListIterator<Integer> it = LinkedList.of(10, 20, 30).listIterator(1);
+        it.previous();
+    }
+
+    @Test(expected=UnsupportedOperationException.class)
+    public void testListIteratorAddNotSupported() {
+        LinkedList.of(10, 20, 30).listIterator().add(0);
+    }
+    @Test(expected=UnsupportedOperationException.class)
+    public void testListIteratorRemoveNotSupported() {
+        ListIterator<Integer> it = LinkedList.of(10, 20, 30).listIterator();
+        it.next();
+        it.remove();
+    }
+    @Test(expected=UnsupportedOperationException.class)
+    public void testListIteratorSetNotSupported() {
+        ListIterator<Integer> it = LinkedList.of(10, 20, 30).listIterator();
+        it.next();
+        it.set(100);
     }
 }
