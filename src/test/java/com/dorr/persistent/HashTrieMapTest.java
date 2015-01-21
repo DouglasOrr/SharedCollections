@@ -1,9 +1,11 @@
 package com.dorr.persistent;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.hash.Hashing;
 import junit.framework.TestCase;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
+import org.junit.Test;
 
 import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
@@ -24,7 +26,7 @@ public class HashTrieMapTest extends TestCase {
         @Override
         public int hashCode() { return hash; }
         @Override
-        public String toString() { return value.toString() + "#" + hash; }
+        public String toString() { return value.toString() + "#" + Integer.toBinaryString(hash); }
         @Override
         public boolean equals(Object that) {
             return that instanceof TestHash && this.value.equals(((TestHash) that).value);
@@ -170,12 +172,12 @@ public class HashTrieMapTest extends TestCase {
         test.remove("zero"); // remove (missing/empty)
     }
 
-    private static TestHash<String> th(String value, int hash) {
-        return new TestHash<String>(value, hash);
+    private static <T> TestHash<T> th(T value, int hash) {
+        return new TestHash<T>(value, hash);
     }
 
-    /** Cases where with() and without() do special work. */
-    public void testEdgeCases() {
+    /** Messing with the array of children. */
+    public void testChildMovement() {
         Verifier<TestHash<String>, Integer> test = new Verifier<TestHash<String>, Integer>();
 
         // moving children around
@@ -192,8 +194,36 @@ public class HashTrieMapTest extends TestCase {
         test.remove(th("01000", 0x0008)); // empty
     }
 
+    /** When removing alters the structure of the trie. */
+    public void testRemoveCollapse() {
+        Verifier<TestHash<String>, Integer> test = new Verifier<TestHash<String>, Integer>();
+
+        test.put(th("0100000", 0x20), 1);
+        test.put(th("1100000", 0x60), 2);
+        test.put(th("0011111", 0x1f), 3);
+        // REGRESSION - remove an entry that is the sibling of a node - if the node is collapsed the hashes will be wrong
+        test.remove(th("0011111", 0x1f));
+    }
+
+    /** Replacing existing keys - at the root, normal nodes, collision nodes. */
+    public void testReplace() {
+        Verifier<TestHash<String>, Integer> test = new Verifier<TestHash<String>, Integer>();
+
+        test.put(th("a",  0xa00008), 1);
+        test.put(th("a",  0xa00008), 2); // replace root
+
+        test.put(th("b",  0xb00008), 3);
+        test.put(th("b",  0xb00008), 4); // replace node
+
+        test.put(th("b2", 0xb00008), 5);
+        test.put(th("b3", 0xb00008), 6);
+        test.put(th("b",  0xb00008), 7); // replace first collision
+        test.put(th("b2", 0xb00008), 8); // replace mid collision
+        test.put(th("b3", 0xb00008), 9); // replace last collision
+    }
+
     /** Add a load of entries that all have exactly the same hash. */
-    public void testCollisions() throws Exception {
+    public void testCollisions() {
         final int repeat = 5;
 
         List<Integer> extremeHashes = new ArrayList<Integer>();
@@ -216,6 +246,86 @@ public class HashTrieMapTest extends TestCase {
             for (int i = 0; i < repeat; ++i) {
                 test.remove(th(Integer.toString(i), hash));
             }
+        }
+    }
+
+    // Fuzz tests
+
+    private static abstract class IntegerGenerator {
+        private final String mName;
+        public IntegerGenerator(String name) { mName = name; }
+        public abstract int next(Random random);
+        @Override
+        public String toString() {
+            return mName;
+        }
+    }
+    private static final IntegerGenerator GOOD_RANDOM_GENERATOR = new IntegerGenerator("goodhash") {
+        @Override
+        public int next(Random random) {
+            return random.nextInt();
+        }
+    };
+    private static final IntegerGenerator WEIRD_RANDOM_GENERATOR = new IntegerGenerator("weirdhash") {
+        @Override
+        public int next(Random random) {
+            // reversed floats in the range [0 1] should have lots of collisions for the
+            // early levels (which use the least significant portion of the hash), then get
+            // quite bushy toward the mantissa
+            return Integer.reverse(Float.floatToIntBits(random.nextFloat()));
+        }
+    };
+    private static IntegerGenerator limitedRandomGenerator(final int range) {
+        return new IntegerGenerator("limitedhash:" + range) {
+            @Override
+            public int next(Random random) {
+                return Hashing.sipHash24().hashInt(random.nextInt(range)).asInt();
+            }
+        };
+    }
+
+    /** General fuzz */
+    public void testFuzz() {
+        for (IntegerGenerator generator : Arrays.asList(
+                GOOD_RANDOM_GENERATOR,
+                WEIRD_RANDOM_GENERATOR,
+                limitedRandomGenerator(100000),
+                limitedRandomGenerator(10000),
+                limitedRandomGenerator(1000))) {
+
+            final int nOuter = 100;
+            final int nInner = 1000;
+            Random random = new Random(42);
+            HashTrieMap<TestHash<Integer>, Integer> map = HashTrieMap.empty();
+            HashMap<TestHash<Integer>, Integer> reference = new HashMap<TestHash<Integer>, Integer>();
+            long before = System.nanoTime();
+
+            // add the keys, checking validity periodically
+            int nextKey = 0;
+            for (int n = 0; n < nOuter; ++n) {
+                for (int i = 0; i < nInner; ++i) {
+                    TestHash<Integer> k = th(nextKey++, generator.next(random));
+                    map = map.with(k, k.value);
+                    reference.put(k, k.value);
+                }
+                assertThat(map, Matchers.<Map<TestHash<Integer>, Integer>> equalTo(reference));
+            }
+
+            // remove all the keys, checking validity periodically
+            List<TestHash<Integer>> keys = new ArrayList<TestHash<Integer>>(reference.keySet());
+            Collections.shuffle(keys, random);
+            Iterator<TestHash<Integer>> keyIterator = keys.iterator();
+            for (int n = 0; n < nOuter; ++n) {
+                for (int i = 0; i < nInner; ++i) {
+                    TestHash<Integer> key = keyIterator.next();
+                    map = map.without(key);
+                    reference.remove(key);
+                }
+                assertThat(map, Matchers.<Map<TestHash<Integer>, Integer>> equalTo(reference));
+            }
+
+            long after = System.nanoTime();
+            System.out.println("Generator " + generator + " took " + (after - before) / 1.0E6 + " ms");
         }
     }
 }

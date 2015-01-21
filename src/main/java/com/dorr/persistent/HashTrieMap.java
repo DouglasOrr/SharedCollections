@@ -378,8 +378,9 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
                         // no children left - delete this node
                         return null;
 
-                    } else if (currentNode.children.length == 2) {
-                        // only one child left - can 'collapse' to an Entry for the other child
+                    } else if (currentNode.children.length == 2
+                            && !(currentNode.children[1 - childIndex] instanceof Node)) {
+                        // can 'collapse' to an Entry for the other child, as long as it isn't a Node
                         return currentNode.children[1 - childIndex];
 
                     } else {
@@ -513,5 +514,37 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
         public void remove() {
             throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its iterator)");
         }
+    }
+
+    // Debugging methods
+
+    /** Debug your hash code - how many collisions are there in the map. */
+    public int countCollisions() {
+        int n = 0;
+        Queue<Object> mQueue = new ArrayDeque<Object>();
+        mQueue.add(mRoot);
+        while (!mQueue.isEmpty()) {
+            Object next = mQueue.remove();
+            if (next instanceof SimpleImmutableEntry[]) {
+                n += ((SimpleImmutableEntry[]) next).length;
+            } else if (next instanceof Node) {
+                mQueue.addAll(Arrays.asList(((Node) next).children));
+            }
+        }
+        return n;
+    }
+    /** Debug your hash code - how many nodes do we have. */
+    public int countNodes() {
+        int n = 0;
+        Queue<Object> mQueue = new ArrayDeque<Object>();
+        mQueue.add(mRoot);
+        while (!mQueue.isEmpty()) {
+            Object next = mQueue.remove();
+            if (next instanceof Node) {
+                ++n;
+                mQueue.addAll(Arrays.asList(((Node) next).children));
+            }
+        }
+        return n;
     }
 }
