@@ -15,7 +15,7 @@ public interface PersistentMap<K,V> extends Map<K, V> {
      * @return a new map with the key->value mapping (the existing map is unchanged),
      * (so <code>map.get(key) == value</code>).
      */
-    PersistentMap<K,V> with(K key, V value);
+    PersistentMap<K, V> with(K key, V value);
 
     /**
      * Return a new map, without the given key.

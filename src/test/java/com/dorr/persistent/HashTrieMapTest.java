@@ -152,10 +152,14 @@ public class HashTrieMapTest extends TestCase {
                 new HashTrieMap<Object, Object>(new HashMap<Object, Object>())
         )) {
             assertThat(empty.size(), is(0));
+            assertThat(empty.isEmpty(), is(true));
             assertThat(empty.get("foo"), nullValue());
             assertThat(empty.without("foo"), sameInstance(empty));
             assertThat(empty.toString(), is("{}"));
             assertThat(empty, equalTo(Collections.emptyMap()));
+            assertThat(empty.entrySet().iterator().hasNext(), is(false));
+            assertThat(empty.keySet().iterator().hasNext(), is(false));
+            assertThat(empty.values().iterator().hasNext(), is(false));
         }
     }
 

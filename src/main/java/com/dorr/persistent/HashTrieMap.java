@@ -2,7 +2,6 @@ package com.dorr.persistent;
 
 import java.lang.reflect.Array;
 import java.util.*;
-import java.util.AbstractMap.SimpleImmutableEntry;
 
 /**
  * An implementation of the persistent hash trie map.
@@ -533,7 +532,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
         }
         return n;
     }
-    /** Debug your hash code - how many nodes do we have. */
+    /** Debug your hash code - how many trie nodes do we have. */
     public int countNodes() {
         int n = 0;
         Queue<Object> mQueue = new ArrayDeque<Object>();
