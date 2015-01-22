@@ -5,20 +5,24 @@ import objectexplorer.Chain;
 import objectexplorer.MemoryMeasurer;
 import objectexplorer.ObjectVisitor;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.IdentityHashMap;
+import java.util.List;
 
 public class Comparisons {
-    public static final MapTester<String, Integer> TEST_DOUG = new MapTester.PersistentMapTester<String, Integer>(HashTrieMap.<String, Integer> empty());
-    public static final MapTester<String, Integer> TEST_JAVA = new MapTester.JavaHashMapTester<String, Integer>();
-    public static final MapTester<String, Integer> TEST_JAVA_TREE = new MapTester.JavaTreeMapTester<String, Integer>();
-    public static final MapTester<String, Integer> TEST_CLOJURE = new MapTester.ClojureIPersistentMapTester<String, Integer>();
-    public static final MapTester<String, Integer> TEST_SCALA = new MapTester.ScalaImmutableMapTester<String, Integer>(scala.collection.immutable.HashMap$.MODULE$.<String, Integer> empty());
-    public static List<MapTester<String, Integer>> TEST_MAPS = Arrays.asList(
-            TEST_DOUG,
-            TEST_JAVA,
-            TEST_JAVA_TREE,
-            TEST_CLOJURE,
-            TEST_SCALA
+    public static final List<MapTester<String, Integer>> TEST_MAPS = Arrays.asList(
+            new MapTester.PersistentMapTester<String, Integer>(HashTrieMap.<String, Integer> empty()),
+            new MapTester.JavaHashMapTester<String, Integer>(),
+            new MapTester.JavaTreeMapTester<String, Integer>(),
+            new MapTester.ClojureIPersistentMapTester<String, Integer>(clojure.lang.PersistentHashMap.create()),
+            new MapTester.ScalaImmutableMapTester<String, Integer>(scala.collection.immutable.HashMap$.MODULE$.<String, Integer> empty())
+    );
+
+    public static final List<ArrayTester<Integer>> TEST_ARRAYS = Arrays.asList(
+            new ArrayTester.PersistentArrayTester<Integer>(TrieArray.<Integer> empty()),
+            new ArrayTester.JavaArrayListTester<Integer>(),
+            new ArrayTester.ClojureVectorTester<Integer>(clojure.lang.PersistentVector.create())
+           // new ArrayTester.ScalaIndexedSeqTester<Integer>(scala.collection.immutable.Vector$.MODULE$.<Integer> empty())
     );
 
     public static class Memory {
@@ -53,13 +57,15 @@ public class Comparisons {
             return runtime.totalMemory() - runtime.freeMemory();
         }
 
-        public static void profile(MapTester<String, Integer> tester) {
+        private static abstract class Fill {
+            public abstract void fill(int size);
+        }
+
+        public static void profile(Tester tester, Fill fill) {
             System.out.println(Joiner.on(",").join("Size", tester + " (measured)", tester + " (heap)"));
             for (int size = 1; size <= 1000000; size *= 10) {
                 tester.reset();
-                for (int i = 0; i < size; ++i) {
-                    tester.put(Integer.toHexString(PRIME * i), i);
-                }
+                fill.fill(size);
                 long measuredBytes = MemoryMeasurer.measureBytes(tester);
                 long usageWith = getMemory();
                 tester.reset();
@@ -68,6 +74,26 @@ public class Comparisons {
                 System.out.println(Joiner.on(',').join(size, measuredBytes, heapDelta));
             }
         }
+        public static void profileMap(final MapTester<String, Integer> tester) {
+            profile(tester, new Fill() {
+                @Override
+                public void fill(int size) {
+                    for (int i = 0; i < size; ++i) {
+                        tester.put(Integer.toHexString(PRIME * i), i);
+                    }
+                }
+            });
+        }
+        public static void profileArray(final ArrayTester<Integer> tester) {
+            profile(tester, new Fill() {
+                @Override
+                public void fill(int size) {
+                    for (int i = 0; i < size; ++i) {
+                        tester.add(i);
+                    }
+                }
+            });
+        }
 
         /**
          * Run the memory tests.
@@ -75,8 +101,11 @@ public class Comparisons {
          * in a controlled environment.</p>
          */
         public static void main(String[] args) {
-            for (MapTester<String, Integer> tester : TEST_MAPS) {
-                profile(tester);
+//            for (MapTester<String, Integer> tester : TEST_MAPS) {
+//                profileMap(tester);
+//            }
+            for (ArrayTester<Integer> tester : TEST_ARRAYS) {
+                profileArray(tester);
             }
         }
     }
@@ -84,26 +113,49 @@ public class Comparisons {
     public static class Performance {
         private static final int PRIME = 61;
 
-        private static void runInserts(MapTester<String, Integer> tester, int runs, int size) {
-            for (int n = 0; n < runs; ++n) {
-                tester.reset();
-                for (int i = 0; i < size; ++i) {
-                    tester.put(Integer.toHexString(PRIME * i), i + n);
-                }
-            }
+        private abstract static class Run {
+            public abstract void run(int runs, int size);
         }
 
-        public static void profile(MapTester<String, Integer> tester) {
+        private static void profile(Tester tester, Run run) {
             System.out.println(Joiner.on(',').join("Size", tester));
             for (int size = 10; size <= 1000000; size *= 10) {
                 int runs = 100000000 / size;
 
                 long t0 = System.nanoTime();
-                runInserts(tester, runs, size);
+                run.run(runs, size);
                 long t1 = System.nanoTime();
 
                 System.out.println(Joiner.on(',').join(size, (t1 - t0) / (1.0E3 * runs * size)));
             }
+        }
+
+        public static void profileMap(final MapTester<String, Integer> tester) {
+            profile(tester, new Run() {
+                @Override
+                public void run(int runs, int size) {
+                    for (int n = 0; n < runs; ++n) {
+                        tester.reset();
+                        for (int i = 0; i < size; ++i) {
+                            tester.put(Integer.toHexString(PRIME * i), i + n);
+                        }
+                    }
+                }
+            });
+        }
+
+        private static void profileArray(final ArrayTester<Integer> tester) {
+            profile(tester, new Run() {
+                @Override
+                public void run(int runs, int size) {
+                    for (int n = 0; n < runs; ++n) {
+                        tester.reset();
+                        for (int i = 0; i < size; ++i) {
+                            tester.add(i);
+                        }
+                    }
+                }
+            });
         }
 
         /**
@@ -112,8 +164,11 @@ public class Comparisons {
          * in a controlled environment, and are slow.</p>
          */
         public static void main(String[] args) {
-            for (MapTester<String, Integer> tester : TEST_MAPS) {
-                profile(tester);
+//            for (MapTester<String, Integer> tester : TEST_MAPS) {
+//                profileMap(tester);
+//            }
+            for (ArrayTester<Integer> tester : TEST_ARRAYS) {
+                profileArray(tester);
             }
         }
     }

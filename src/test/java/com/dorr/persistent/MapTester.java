@@ -9,10 +9,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /** Abstracts away the details of map implementations, for fair-ish comparison. */
-public abstract class MapTester<K,V> {
+public abstract class MapTester<K,V> extends Tester {
     public abstract V get(K key);
     public abstract void put(K key, V value);
-    public abstract void reset();
 
     public static class PersistentMapTester<K,V> extends MapTester<K,V> {
         private final PersistentMap<K,V> mEmpty;
@@ -71,8 +70,14 @@ public abstract class MapTester<K,V> {
     }
 
     public static class ClojureIPersistentMapTester<K,V> extends MapTester<K,V> {
-        private final IPersistentMap mEmpty = PersistentHashMap.create();
-        private IPersistentMap mMap = mEmpty;
+        private final IPersistentMap mEmpty;
+        private IPersistentMap mMap;
+
+        public ClojureIPersistentMapTester(IPersistentMap empty) {
+            mEmpty = empty;
+            mMap = mEmpty;
+        }
+
         @Override @SuppressWarnings("unchecked")
         public V get(K key) {
             return (V) mMap.valAt(key);
