@@ -21,7 +21,7 @@ As such, the library seeks to:
  - keep APIs relatively stable
  - have no extra dependencies
 
- If you have improvements that are in line with these goals, or don't conflict, I'd be very happy to receive a pull request.
+If you have improvements that are in line with these goals, or don't conflict, I'd be very happy to receive a pull request.
 
 ## Background
 
