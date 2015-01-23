@@ -1,5 +1,7 @@
 package com.dorr.persistent;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 import java.util.AbstractList;
 import java.util.Arrays;
 
@@ -82,7 +84,17 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T> 
         }
     }
 
-    public Object assign(Object[] newRoot, T value, int index) {
+    @Override
+    public PersistentArray<T> insert(int index, T value) throws IndexOutOfBoundsException {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public PersistentArray<T> erase(int index) throws IndexOutOfBoundsException {
+        throw new NotImplementedException();
+    }
+
+    private Object assign(Object[] newRoot, T value, int index) {
         Object[] current;
         Object[] parent = newRoot;
         int parentIndex;
