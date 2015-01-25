@@ -102,9 +102,9 @@ public class Comparisons {
          * in a controlled environment.</p>
          */
         public static void main(String[] args) {
-//            for (MapTester<String, Integer> tester : TEST_MAPS) {
-//                profileMap(tester);
-//            }
+            for (MapTester<String, Integer> tester : TEST_MAPS) {
+                profileMap(tester);
+            }
             for (ArrayTester<Integer> tester : TEST_ARRAYS) {
                 profileArray(tester);
             }
@@ -121,7 +121,7 @@ public class Comparisons {
         private static void profile(Tester tester, int maxSize, int opsPerSize, Run run) {
             System.out.println(Joiner.on(',').join("Size", tester));
             for (int size = 10; size <= maxSize; size *= 10) {
-                int runs = opsPerSize / size;
+                int runs = Math.max(opsPerSize / size, 100);
 
                 long t0 = System.nanoTime();
                 run.run(runs, size);
@@ -146,7 +146,7 @@ public class Comparisons {
         }
 
         private static void profileArray(final ArrayTester<Integer> tester) {
-            profile(tester, (int) 1E8, (int) 1E9, new Run() {
+            profile(tester, (int) 1E7, (int) 1E8, new Run() {
                 @Override
                 public void run(int runs, int size) {
                     for (int n = 0; n < runs; ++n) {
@@ -192,9 +192,9 @@ public class Comparisons {
          * in a controlled environment, and are slow.</p>
          */
         public static void main(String[] args) {
-//            for (MapTester<String, Integer> tester : TEST_MAPS) {
-//                profileMap(tester);
-//            }
+            for (MapTester<String, Integer> tester : TEST_MAPS) {
+                profileMap(tester);
+            }
             for (ArrayTester<Integer> tester : TEST_ARRAYS) {
                 profileArray(tester);
             }
