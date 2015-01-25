@@ -1,6 +1,7 @@
 package com.dorr.persistent;
 
 import java.util.AbstractSet;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -36,11 +37,7 @@ public class HashTrieSet<T> extends AbstractSet<T> implements PersistentSet<T> {
         return new HashTrieSet<T>(HashTrieMap.singleton(value, PRESENT));
     }
     public static <T> HashTrieSet<T> of(T... values) {
-        HashTrieMap<T, Object> map = HashTrieMap.empty();
-        for (T value : values) {
-            map = map.with(value, PRESENT);
-        }
-        return new HashTrieSet<T>(map);
+        return new HashTrieSet<T>(Arrays.asList(values));
     }
 
     // *** Core methods ***

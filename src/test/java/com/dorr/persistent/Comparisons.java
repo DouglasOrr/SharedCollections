@@ -1,5 +1,6 @@
 package com.dorr.persistent;
 
+import clojure.lang.PersistentVector;
 import com.google.common.base.Joiner;
 import objectexplorer.Chain;
 import objectexplorer.MemoryMeasurer;
@@ -117,21 +118,21 @@ public class Comparisons {
             public abstract void run(int runs, int size);
         }
 
-        private static void profile(Tester tester, Run run) {
+        private static void profile(Tester tester, int maxSize, int opsPerSize, Run run) {
             System.out.println(Joiner.on(',').join("Size", tester));
-            for (int size = 10; size <= 1000000; size *= 10) {
-                int runs = 100000000 / size;
+            for (int size = 10; size <= maxSize; size *= 10) {
+                int runs = opsPerSize / size;
 
                 long t0 = System.nanoTime();
                 run.run(runs, size);
                 long t1 = System.nanoTime();
 
-                System.out.println(Joiner.on(',').join(size, (t1 - t0) / (1.0E3 * runs * size)));
+                System.out.println(Joiner.on(',').join(size, (double)(t1 - t0) / (runs * size)));
             }
         }
 
         public static void profileMap(final MapTester<String, Integer> tester) {
-            profile(tester, new Run() {
+            profile(tester, (int) 1E6, (int) 1E8, new Run() {
                 @Override
                 public void run(int runs, int size) {
                     for (int n = 0; n < runs; ++n) {
@@ -145,7 +146,7 @@ public class Comparisons {
         }
 
         private static void profileArray(final ArrayTester<Integer> tester) {
-            profile(tester, new Run() {
+            profile(tester, (int) 1E8, (int) 1E9, new Run() {
                 @Override
                 public void run(int runs, int size) {
                     for (int n = 0; n < runs; ++n) {
@@ -156,6 +157,33 @@ public class Comparisons {
                     }
                 }
             });
+        }
+
+        private static void headToHead() {
+            final int SHORT = 1000, LONG = 100000;
+            final int runs = SHORT, size = 100000;
+
+            for (int x = 0; x < 10; ++x) {
+                long t0 = System.nanoTime();
+                for (int n = 0; n < runs; ++n) {
+                    PersistentVector v = PersistentVector.create();
+                    for (int i = 0; i < size; ++i) {
+                        v = v.cons(i);
+                    }
+                }
+                long t1 = System.nanoTime();
+                for (int n = 0; n < runs; ++n) {
+                    TrieArray<Integer> a = TrieArray.empty();
+                    for (int i = 0; i < size; ++i) {
+                        a = a.append(i);
+                    }
+                }
+                long t2 = System.nanoTime();
+                double t01 = (t1 - t0) / (double) (runs * size);
+                double t12 = (t2 - t1) / (double) (runs * size);
+                System.out.println("Doug: " + t12 + " ns");
+                System.out.println(" Clj: " + t01 + " ns");
+            }
         }
 
         /**

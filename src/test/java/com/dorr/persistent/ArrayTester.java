@@ -70,7 +70,7 @@ public abstract class ArrayTester<T> extends Tester {
         }
         @Override
         public void add(T value) {
-            mVector.assocN(mVector.length(), value);
+            mVector = mVector.cons(value);
         }
         @Override
         public void reset() {
