@@ -5,6 +5,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.NoSuchElementException;
 
 /**
  * An implementation of the persistent trie array.
@@ -69,6 +70,24 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T> 
                 : 1 + (31 - Integer.numberOfLeadingZeros(rootSize - 1)) / NBITS;
     }
 
+    /**
+     * Find the node (non-terminal, or terminal) at <code>index</code> in level
+     * <code>targetLevel</code>.
+     * @param root node to start from
+     * @param rootLevel level to start from
+     * @param targetIndex the index to search for
+     * @param targetLevel what level in the tree to return (i.e. for a terminal, pass targetLevel=0)
+     * @return the terminal (if targetLevel == 0) or nonterminal (if targetLevel != 0)
+     */
+    private static Object findNode(Object root, int rootLevel, int targetIndex, int targetLevel) {
+        Object current = root;
+        for (int level = rootLevel; targetLevel <= level; --level) {
+            int childIndex = (targetIndex >>> (NBITS * level)) & MASK;
+            current = ((Object[]) current)[childIndex];
+        }
+        return current;
+    }
+
     @Override
     public T get(int index) {
         if (index < 0 || mSize <= index) {
@@ -77,12 +96,7 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T> 
 
         int rootSize = rootSize(mSize);
         if (index < rootSize) {
-            Object current = mRoot;
-            for (int level = height(mSize) - 1; 0 <= level; --level) {
-                int childIndex = (index >>> (NBITS * level)) & MASK;
-                current = ((Object[]) current)[childIndex];
-            }
-            return (T) current;
+            return (T) findNode(mRoot, height(mSize) - 1, index, 0);
 
         } else if (mSize - rootSize == 1) {
             return (T) mEnd;
@@ -198,12 +212,82 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T> 
     }
 
     @Override
-    public PersistentArray<T> insert(int index, T value) throws IndexOutOfBoundsException {
+    public TrieArray<T> remend() {
+        final int rootSize = rootSize(mSize);
+
+        if (mSize == 0) {
+            throw new NoSuchElementException("Cannot remove the end of an empty array");
+
+        } else if (mSize == 1) {
+            return empty();
+
+        } else if (mSize - rootSize == 2) {
+            // collapse to 1-element 'end'
+            return new TrieArray<T>(mRoot, ((Object[]) mEnd)[0], mSize - 1);
+
+        } else if (2 < mSize - rootSize) {
+            // contract the 'end' array
+            Object[] endArray = (Object[]) mEnd;
+            return new TrieArray<T>(mRoot, Arrays.copyOf(endArray, endArray.length - 1), mSize - 1);
+
+        } else {
+            // only one element in the 'end' array - need to find a new one from mRoot...
+
+            int oldHeight = height(mSize);
+            int newHeight = height(mSize - 1);
+            if (newHeight == 0) {
+                return new TrieArray<T>(null, mRoot, mSize - 1);
+
+            } else if (newHeight < oldHeight) {
+                // shrink the tree: the root has two children,
+                // - the first is the new root
+                // - the second should just contain one block that is the new mEnd
+                assert(mRoot.length == 2);
+                return new TrieArray<T>((Object[]) mRoot[0], findNode(mRoot[1], oldHeight - 2, rootSize - 1, 1), mSize - 1);
+
+            } else {
+                // move a new 'end' out of 'mRoot'
+
+                Object[] newRoot = null;
+                Object[] parent = null;
+                int parentIndex = -1;
+                Object[] current = mRoot;
+
+                // build a new slice of tree, copying from the old
+                for (int level = oldHeight - 1; 1 <= level; --level) {
+                    final int childIndex = ((rootSize - BLOCK_SIZE - 1) >>> (NBITS * level)) & MASK;
+
+                    // patch up the new trie
+                    final Object[] copy = Arrays.copyOf(current, childIndex + 1);
+                    if (newRoot == null) { newRoot = copy; }
+                    else { parent[parentIndex] = copy; }
+
+                    if (copy.length < current.length) {
+                        // we've shrunk - so we must be done
+                        return new TrieArray<T>(newRoot, findNode(current, level, rootSize - 1, 1), mSize - 1);
+                    } else {
+                        parent = copy;
+                        parentIndex = childIndex;
+                        current = (Object[]) current[childIndex];
+                    }
+                }
+                throw new IllegalStateException("Implementation error - should not be possible");
+            }
+        }
+    }
+
+    @Override
+    public TrieArray<T> take(int n) throws IndexOutOfBoundsException {
         throw new NotImplementedException();
     }
 
     @Override
-    public PersistentArray<T> erase(int index) throws IndexOutOfBoundsException {
+    public TrieArray<T> insert(int index, T value) throws IndexOutOfBoundsException {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public TrieArray<T> erase(int index) throws IndexOutOfBoundsException {
         throw new NotImplementedException();
     }
 }

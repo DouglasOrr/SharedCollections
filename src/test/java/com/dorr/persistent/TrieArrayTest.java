@@ -42,4 +42,19 @@ public class TrieArrayTest extends TestCase {
         assertThat(trie.get(idx-1), is("item " + (idx-1)));
         assertThat(trie.get(idx+1), is("item " + (idx+1)));
     }
+
+    public void testRemend() {
+        final int limit = 32 * 32 + 1;
+        TrieArray<String> trie = TrieArray.empty();
+        for (int i = 0; i < limit; ++i) {
+            trie = trie.append("item " + i);
+        }
+        for (int i = limit; i != 0; --i) {
+            trie = trie.remend();
+            assertThat(trie.size(), is(i - 1));
+            for (int j = 0; j < i - 1; ++j) {
+                assertThat(trie.get(j), is("item " + j));
+            }
+        }
+    }
 }
