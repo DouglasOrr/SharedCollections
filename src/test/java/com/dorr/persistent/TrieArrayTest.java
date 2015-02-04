@@ -57,4 +57,19 @@ public class TrieArrayTest extends TestCase {
             }
         }
     }
+
+    public void testTake() {
+        final int limit = 32 * 32 + 1;
+        TrieArray<String> trie = TrieArray.empty();
+        for (int i = 0; i < limit; ++i) {
+            trie = trie.append("item " + i);
+        }
+        for (int i = 0; i <= limit; ++i) {
+            TrieArray<String> head = trie.take(i);
+            assertThat(head.size(), is(i));
+            for (int j = 0; j < i; ++j) {
+                assertThat(head.get(j), is("item " + j));
+            }
+        }
+    }
 }

@@ -1,7 +1,5 @@
 package com.dorr.persistent;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -86,6 +84,16 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T> 
             current = ((Object[]) current)[childIndex];
         }
         return current;
+    }
+
+    private static Object shrinkEnd(Object[] end, int n) {
+        if (n == 1) {
+            return end[0];
+        } else if (n == end.length) {
+            return end;
+        } else {
+            return Arrays.copyOf(end, n);
+        }
     }
 
     @Override
@@ -278,16 +286,55 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T> 
 
     @Override
     public TrieArray<T> take(int n) throws IndexOutOfBoundsException {
-        throw new NotImplementedException();
-    }
+        final int rootSize = rootSize(mSize);
 
-    @Override
-    public TrieArray<T> insert(int index, T value) throws IndexOutOfBoundsException {
-        throw new NotImplementedException();
-    }
+        if (!(0 <= n && n <= mSize)) {
+            throw new IndexOutOfBoundsException(String.format("Trying to take(%d) from a %d-element array", n, mSize));
 
-    @Override
-    public TrieArray<T> erase(int index) throws IndexOutOfBoundsException {
-        throw new NotImplementedException();
+        } else if (n == mSize) {
+            return this;
+
+        } else if (n == 0) {
+            return empty();
+
+        } else if (1 <= n - rootSize) {
+            // just shrink the 'end' array
+            return new TrieArray<T>(mRoot, shrinkEnd((Object[]) mEnd, n - rootSize), n);
+
+        } else {
+            // we have run out of capacity in mEnd, so we need to get a new root, and end
+
+            final int oldHeight = height(mSize);
+            final int newRootSize = rootSize(n);
+            final int newHeight = height(n);
+
+            // build a new slice of tree, copying from the old
+            Object[] newRoot = null;
+            Object[] parent = null;
+            int parentIndex = -1;
+            Object[] current = mRoot;
+            for (int level = oldHeight - 1; 0 <= level; --level) {
+                final int childIndex = ((newRootSize - 1) >>> (NBITS * level)) & MASK;
+                if (level <= newHeight - 1) {
+                    // patch up the new trie
+                    final Object[] copy = Arrays.copyOf(current, childIndex + 1);
+                    if (newRoot == null) {
+                        newRoot = copy;
+                    } else {
+                        parent[parentIndex] = copy;
+                    }
+                    parent = copy;
+                    parentIndex = childIndex;
+                }
+                if (0 < level) {
+                    current = (Object[]) current[childIndex];
+                }
+            }
+
+            // find the new end node, and resize it as necessary
+            Object newEnd = shrinkEnd((Object[]) findNode(mRoot, oldHeight - 1, newRootSize, 1), n - newRootSize);
+
+            return new TrieArray<T>(newRoot, newEnd, n);
+        }
     }
 }

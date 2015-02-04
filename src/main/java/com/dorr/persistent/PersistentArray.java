@@ -38,25 +38,4 @@ public interface PersistentArray<T> extends List<T> {
      * @return a new array containing the first <code>n</code> elements
      */
     PersistentArray<T> take(int n) throws IndexOutOfBoundsException;
-
-    /**
-     * Returns a new array, with <code>value</code> at <code>index</code>.
-     * Elements after <code>index</code> are shifted forward by one place to make room.
-     * (The original array is unmodified.)
-     * @param index the location to insert the new value
-     * @param value value to place at index
-     * @return a new array, with <code>value</code> at <code>index</code>
-     */
-    @Deprecated
-    PersistentArray<T> insert(int index, T value) throws IndexOutOfBoundsException;
-
-    /**
-     * Returns a new array, without the element that was at <code>index</code>.
-     * (The original array is unmodified.)
-     * Elements after <code>index</code> are shifted backward by one place to make room.
-     * @param index the location to erase a value
-     * @return a new array, with the previous value of <code>index</code> removed.
-     */
-    @Deprecated
-    PersistentArray<T> erase(int index) throws IndexOutOfBoundsException;
 }
