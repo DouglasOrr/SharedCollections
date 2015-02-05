@@ -1,11 +1,5 @@
 package com.dorr.persistent;
 
-import clojure.lang.IPersistentVector;
-import scala.collection.Seq;
-import scala.collection.Seq$;
-import scala.collection.generic.CanBuildFrom;
-import scala.collection.mutable.Builder;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +7,10 @@ import java.util.List;
 public abstract class ArrayTester<T> extends Tester {
     public abstract T get(int index);
     public abstract void add(T value);
+    public abstract void add(int index, T value);
+    public abstract void set(int index, T value);
+    public abstract void remove();
+    public abstract void remove(int index);
 
     public static class PersistentArrayTester<T> extends ArrayTester<T> {
         private final PersistentArray<T> mEmpty;
@@ -32,8 +30,28 @@ public abstract class ArrayTester<T> extends Tester {
             mArray = mArray.append(value);
         }
         @Override
+        public void add(int index, T value) {
+            mArray = PersistentArrays.insert(mArray, index, value);
+        }
+        @Override
+        public void set(int index, T value) {
+            mArray = mArray.update(index, value);
+        }
+        @Override
+        public void remove() {
+            mArray = mArray.remend();
+        }
+        @Override
+        public void remove(int index) {
+            mArray = PersistentArrays.erase(mArray, index);
+        }
+        @Override
         public void reset() {
             mArray = mEmpty;
+        }
+        @Override
+        public String toString() {
+            return "Doug.TrieArray";
         }
     }
 
@@ -50,8 +68,28 @@ public abstract class ArrayTester<T> extends Tester {
             mList.add(value);
         }
         @Override
+        public void add(int index, T value) {
+            mList.add(index, value);
+        }
+        @Override
+        public void set(int index, T value) {
+            mList.set(index, value);
+        }
+        @Override
+        public void remove() {
+            remove(mList.size() - 1);
+        }
+        @Override
+        public void remove(int index) {
+            mList.remove(index);
+        }
+        @Override
         public void reset() {
             mList = new ArrayList<T>();
+        }
+        @Override
+        public String toString() {
+            return "Java.ArrayList";
         }
     }
 
@@ -59,7 +97,7 @@ public abstract class ArrayTester<T> extends Tester {
         private final clojure.lang.IPersistentVector mEmpty;
         private clojure.lang.IPersistentVector mVector;
 
-        public ClojureVectorTester(IPersistentVector empty) {
+        public ClojureVectorTester(clojure.lang.IPersistentVector empty) {
             mEmpty = empty;
             mVector = empty;
         }
@@ -73,42 +111,28 @@ public abstract class ArrayTester<T> extends Tester {
             mVector = mVector.cons(value);
         }
         @Override
+        public void add(int index, T value) {
+            throw new UnsupportedOperationException();
+        }
+        @Override
+        public void set(int index, T value) {
+            mVector = mVector.assocN(index, value);
+        }
+        @Override
+        public void remove() {
+            mVector = (clojure.lang.IPersistentVector) mVector.pop();
+        }
+        @Override
+        public void remove(int index) {
+            throw new UnsupportedOperationException();
+        }
+        @Override
         public void reset() {
             mVector = mEmpty;
         }
-    }
-
-    public static class ScalaIndexedSeqTester<T> extends ArrayTester<T> {
-        private final CanBuildFrom<Seq<T>, T, Seq<T>> mBuildFrom = new CanBuildFrom<Seq<T>, T, Seq<T>>() {
-            final CanBuildFrom<Seq<?>, T, Seq<T>> mBuild = Seq$.MODULE$.canBuildFrom();
-            @Override
-            public Builder<T, Seq<T>> apply(Seq<T> tSeq) {
-                return mBuild.apply();
-            }
-            @Override
-            public Builder<T, Seq<T>> apply() {
-                return mBuild.apply();
-            }
-        };
-        private final scala.collection.Seq<T> mEmpty;
-        private scala.collection.Seq<T> mSeq;
-
-        public ScalaIndexedSeqTester(scala.collection.Seq<T> empty) {
-            mEmpty = empty;
-            mSeq = mEmpty;
-        }
-
         @Override
-        public T get(int index) {
-            return mSeq.apply(index);
-        }
-        @Override
-        public void add(T value) {
-            mSeq = mSeq.$colon$plus(value, mBuildFrom);
-        }
-        @Override
-        public void reset() {
-            mSeq = mEmpty;
+        public String toString() {
+            return "Clojure.Vector";
         }
     }
 }

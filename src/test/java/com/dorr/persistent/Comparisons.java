@@ -6,24 +6,25 @@ import objectexplorer.Chain;
 import objectexplorer.MemoryMeasurer;
 import objectexplorer.ObjectVisitor;
 
-import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.regex.Pattern;
+
+import static java.util.Arrays.asList;
 
 public class Comparisons {
-    public static final List<MapTester<String, Integer>> TEST_MAPS = Arrays.asList(
-            new MapTester.PersistentMapTester<String, Integer>(HashTrieMap.<String, Integer> empty()),
+    public static final List<MapTester<String, Integer>> TEST_MAPS = asList(
+            new MapTester.PersistentMapTester<String, Integer>(HashTrieMap.<String, Integer>empty()),
             new MapTester.JavaHashMapTester<String, Integer>(),
             new MapTester.JavaTreeMapTester<String, Integer>(),
             new MapTester.ClojureIPersistentMapTester<String, Integer>(clojure.lang.PersistentHashMap.create()),
-            new MapTester.ScalaImmutableMapTester<String, Integer>(scala.collection.immutable.HashMap$.MODULE$.<String, Integer> empty())
+            new MapTester.ScalaImmutableMapTester<String, Integer>(scala.collection.immutable.HashMap$.MODULE$.<String, Integer>empty())
     );
 
-    public static final List<ArrayTester<Integer>> TEST_ARRAYS = Arrays.asList(
-            new ArrayTester.PersistentArrayTester<Integer>(TrieArray.<Integer> empty()),
+    public static final List<ArrayTester<Integer>> TEST_ARRAYS = asList(
+            new ArrayTester.PersistentArrayTester<Integer>(TrieArray.<Integer>empty()),
             new ArrayTester.JavaArrayListTester<Integer>(),
             new ArrayTester.ClojureVectorTester<Integer>(clojure.lang.PersistentVector.create())
-           // new ArrayTester.ScalaIndexedSeqTester<Integer>(scala.collection.immutable.Vector$.MODULE$.<Integer> empty())
     );
 
     public static class Memory {
@@ -114,77 +115,95 @@ public class Comparisons {
     public static class Performance {
         private static final int PRIME = 61;
 
-        private abstract static class Run {
-            public abstract void run(int runs, int size);
+        private abstract static class Run<T extends Tester> {
+            public final String name;
+            public final int maxSize;
+            public final int opsPerSize;
+            public Run(String name, int maxSize, int opsPerSize) {
+                this.name = name;
+                this.maxSize = maxSize;
+                this.opsPerSize = opsPerSize;
+            }
+            @Override
+            public String toString() {
+                return name;
+            }
+            public void prepare(T tester, int size) { }
+            public abstract void run(T tester, int size);
         }
 
-        private static void profile(Tester tester, int maxSize, int opsPerSize, Run run) {
-            System.out.println(Joiner.on(',').join("Size", tester));
-            for (int size = 10; size <= maxSize; size *= 10) {
-                int runs = Math.max(opsPerSize / size, 100);
+        private static <T extends Tester> void profile(T tester, Run run) {
+            System.out.println(Joiner.on(',').join("Size", run.name + "/" + tester));
+            try {
+                for (int size = 10; size <= run.maxSize; size *= 10) {
+                    int runs = Math.max(run.opsPerSize / size, 100);
 
-                long t0 = System.nanoTime();
-                run.run(runs, size);
-                long t1 = System.nanoTime();
+                    tester.reset();
+                    run.prepare(tester, size);
+                    long t0 = System.nanoTime();
+                    for (int i = 0; i < runs; ++i) {
+                        run.run(tester, size);
+                    }
+                    long t1 = System.nanoTime();
 
-                System.out.println(Joiner.on(',').join(size, (double)(t1 - t0) / (runs * size)));
+                    System.out.println(Joiner.on(',').join(size, (double) (t1 - t0) / (runs * size)));
+                }
+            } catch (UnsupportedOperationException e) {
+                System.out.println(",not supported");
             }
         }
 
-        public static void profileMap(final MapTester<String, Integer> tester) {
-            profile(tester, (int) 1E6, (int) 1E8, new Run() {
-                @Override
-                public void run(int runs, int size) {
-                    for (int n = 0; n < runs; ++n) {
-                        tester.reset();
-                        for (int i = 0; i < size; ++i) {
-                            tester.put(Integer.toHexString(PRIME * i), i + n);
-                        }
-                    }
+        private static final Run<MapTester<String, Integer>> RUN_MAP_PUT
+                = new Run<MapTester<String, Integer>>("Map.put", (int) 1E6, (int) 1E8) {
+            @Override
+            public void run(MapTester<String, Integer> tester, int size) {
+                tester.reset();
+                for (int i = 0; i < size; ++i) {
+                    tester.put(Integer.toHexString(PRIME * i), i);
                 }
-            });
-        }
-
-        private static void profileArray(final ArrayTester<Integer> tester) {
-            profile(tester, (int) 1E7, (int) 1E8, new Run() {
-                @Override
-                public void run(int runs, int size) {
-                    for (int n = 0; n < runs; ++n) {
-                        tester.reset();
-                        for (int i = 0; i < size; ++i) {
-                            tester.add(i);
-                        }
-                    }
-                }
-            });
-        }
-
-        private static void headToHead() {
-            final int SHORT = 1000, LONG = 100000;
-            final int runs = SHORT, size = 100000;
-
-            for (int x = 0; x < 10; ++x) {
-                long t0 = System.nanoTime();
-                for (int n = 0; n < runs; ++n) {
-                    PersistentVector v = PersistentVector.create();
-                    for (int i = 0; i < size; ++i) {
-                        v = v.cons(i);
-                    }
-                }
-                long t1 = System.nanoTime();
-                for (int n = 0; n < runs; ++n) {
-                    TrieArray<Integer> a = TrieArray.empty();
-                    for (int i = 0; i < size; ++i) {
-                        a = a.append(i);
-                    }
-                }
-                long t2 = System.nanoTime();
-                double t01 = (t1 - t0) / (double) (runs * size);
-                double t12 = (t2 - t1) / (double) (runs * size);
-                System.out.println("Doug: " + t12 + " ns");
-                System.out.println(" Clj: " + t01 + " ns");
             }
-        }
+        };
+
+        public static final Run<MapTester<String, Integer>> RUN_MAP_GET
+                = new Run<MapTester<String, Integer>>("Map.get", (int) 1E6, (int) 1E8) {
+            @Override
+            public void prepare(MapTester<String, Integer> tester, int size) {
+                for (int i = 0; i < size; ++i) {
+                    tester.put(Integer.toHexString(PRIME * i), i);
+                }
+            }
+            @Override
+            public void run(MapTester<String, Integer> tester, int size) {
+                for (int i = 0; i < size; ++i) {
+                    tester.get(Integer.toHexString(PRIME * i));
+                }
+            }
+        };
+
+        public static final Run<ArrayTester<Integer>> RUN_ARRAY_ADD
+                = new Run<ArrayTester<Integer>>("Array.add", (int) 1E7, (int) 1E8) {
+            @Override
+            public void run(ArrayTester<Integer> tester, int size) {
+                tester.reset();
+                for (int i = 0; i < size; ++i) {
+                    tester.add(i);
+                }
+            }
+        };
+
+        public static final Run<ArrayTester<Integer>> RUN_ARRAY_REMOVE
+                = new Run<ArrayTester<Integer>>("Array.remove", (int) 1E7, (int) 1E8) {
+            @Override
+            public void run(ArrayTester<Integer> tester, int size) {
+                tester.reset();
+                for (int i = 0; i < size; ++i) {
+                    tester.add(i);
+                }
+                for (int i = 0; i < size; ++i) {
+                    tester.remove();
+                }
+            }
+        };
 
         /**
          * Run the performance tests.
@@ -192,11 +211,23 @@ public class Comparisons {
          * in a controlled environment, and are slow.</p>
          */
         public static void main(String[] args) {
-            for (MapTester<String, Integer> tester : TEST_MAPS) {
-                profileMap(tester);
+            String regex = ".+";
+
+            for (Run<MapTester<String, Integer>> run : asList(RUN_MAP_PUT, RUN_MAP_GET)) {
+                for (MapTester<String, Integer> tester : TEST_MAPS) {
+                    String name = run.toString() + "/" + tester.toString();
+                    if (name.matches(regex)) {
+                        profile(tester, run);
+                    }
+                }
             }
-            for (ArrayTester<Integer> tester : TEST_ARRAYS) {
-                profileArray(tester);
+            for (Run<ArrayTester<Integer>> run : asList(RUN_ARRAY_ADD, RUN_ARRAY_REMOVE)) {
+                for (ArrayTester<Integer> tester : TEST_ARRAYS) {
+                    String name = run.toString() + "/" + tester.toString();
+                    if (name.matches(regex)) {
+                        profile(tester, run);
+                    }
+                }
             }
         }
     }

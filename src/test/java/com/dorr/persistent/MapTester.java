@@ -34,7 +34,7 @@ public abstract class MapTester<K,V> extends Tester {
         }
         @Override
         public String toString() {
-            return mMap.getClass().getName();
+            return "Doug.HashTrieMap";
         }
     }
 
@@ -49,10 +49,6 @@ public abstract class MapTester<K,V> extends Tester {
         public void put(K key, V value) {
             mMap.put(key, value);
         }
-        @Override
-        public String toString() {
-            return mMap.getClass().getName();
-        }
     }
 
     public static class JavaHashMapTester<K,V> extends JavaMapTester<K,V> {
@@ -60,12 +56,20 @@ public abstract class MapTester<K,V> extends Tester {
         public void reset() {
             mMap = new HashMap<K, V>();
         }
+        @Override
+        public String toString() {
+            return "Java.HashMap";
+        }
     }
 
     public static class JavaTreeMapTester<K,V> extends JavaMapTester<K,V> {
         @Override
         public void reset() {
             mMap = new TreeMap<K, V>();
+        }
+        @Override
+        public String toString() {
+            return "Java.TreeMap";
         }
     }
 
@@ -92,7 +96,7 @@ public abstract class MapTester<K,V> extends Tester {
         }
         @Override
         public String toString() {
-            return mMap.getClass().getName();
+            return "Clojure.HashMap";
         }
     }
 
@@ -118,7 +122,7 @@ public abstract class MapTester<K,V> extends Tester {
         }
         @Override
         public String toString() {
-            return mMap.getClass().getName();
+            return "Scala.HashMap";
         }
     }
 }

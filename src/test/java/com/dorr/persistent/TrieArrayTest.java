@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -59,16 +60,22 @@ public class TrieArrayTest extends TestCase {
     }
 
     public void testTake() {
-        final int limit = 32 * 32 + 1;
-        TrieArray<String> trie = TrieArray.empty();
-        for (int i = 0; i < limit; ++i) {
-            trie = trie.append("item " + i);
-        }
-        for (int i = 0; i <= limit; ++i) {
-            TrieArray<String> head = trie.take(i);
-            assertThat(head.size(), is(i));
-            for (int j = 0; j < i; ++j) {
-                assertThat(head.get(j), is("item " + j));
+        for (int limit : asList(
+                0, 1, 2, 3, 4, 16,
+                31, 32, 33,
+                63, 64, 65,
+                100, 200, 300, 400, 500, 600,
+                32*32 - 1, 32*32, 32*32 + 1)) {
+            TrieArray<String> trie = TrieArray.empty();
+            for (int i = 0; i < limit; ++i) {
+                trie = trie.append("item " + i);
+            }
+            for (int i = 0; i <= limit; ++i) {
+                TrieArray<String> head = trie.take(i);
+                assertThat(head.size(), is(i));
+                for (int j = 0; j < i; ++j) {
+                    assertThat(head.get(j), is("item " + j));
+                }
             }
         }
     }
