@@ -5,6 +5,7 @@ import clojure.lang.PersistentHashMap;
 import scala.Option;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -12,6 +13,7 @@ import java.util.TreeMap;
 public abstract class MapTester<K,V> extends Tester {
     public abstract V get(K key);
     public abstract void put(K key, V value);
+    public abstract Iterator<Map.Entry<K,V>> iterator();
 
     public static class PersistentMapTester<K,V> extends MapTester<K,V> {
         private final PersistentMap<K,V> mEmpty;
@@ -27,6 +29,10 @@ public abstract class MapTester<K,V> extends Tester {
         @Override
         public void put(K key, V value) {
             mMap = mMap.with(key, value);
+        }
+        @Override
+        public Iterator<Map.Entry<K, V>> iterator() {
+            return mMap.entrySet().iterator();
         }
         @Override
         public void reset() {
@@ -48,6 +54,10 @@ public abstract class MapTester<K,V> extends Tester {
         @Override
         public void put(K key, V value) {
             mMap.put(key, value);
+        }
+        @Override
+        public Iterator<Map.Entry<K, V>> iterator() {
+            return mMap.entrySet().iterator();
         }
     }
 
@@ -91,6 +101,10 @@ public abstract class MapTester<K,V> extends Tester {
             mMap = mMap.assoc(key, value);
         }
         @Override
+        public Iterator<Map.Entry<K, V>> iterator() {
+            return mMap.iterator();
+        }
+        @Override
         public void reset() {
             mMap = mEmpty;
         }
@@ -115,6 +129,10 @@ public abstract class MapTester<K,V> extends Tester {
         @Override
         public void put(K key, V value) {
             mMap = mMap.updated(key, value);
+        }
+        @Override
+        public Iterator<Map.Entry<K, V>> iterator() {
+            throw new UnsupportedOperationException();
         }
         @Override
         public void reset() {

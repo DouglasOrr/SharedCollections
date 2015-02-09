@@ -1,9 +1,6 @@
 package com.dorr.persistent;
 
-import java.util.AbstractList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  * An implementation of the persistent trie array.
@@ -54,6 +51,101 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T> 
     @Override
     public int size() {
         return mSize;
+    }
+
+    // Overrides for performance
+
+    @Override
+    public Iterator<T> iterator() {
+        return new Iter(0);
+    }
+    @Override
+    public ListIterator<T> listIterator() {
+        return new Iter(0);
+    }
+    @Override
+    public ListIterator<T> listIterator(int i) {
+        if (0 <= i && i <= mSize) {
+            return new Iter(i);
+        } else {
+            throw new IndexOutOfBoundsException(String.format("listIterator() requested for out of bounds index (position: %d, size: %d)", i, mSize));
+        }
+    }
+
+    // A more efficient iterator implementation than the one provided by AbstractList
+    private class Iter implements ListIterator<T> {
+        private int mNextIndex;
+        private final int mRootSize;
+        private Object[] mCurrentBlock = null;
+        private int mCurrentBlockIndex = -1;
+
+        public Iter(int index) {
+            mNextIndex = index;
+            mRootSize = rootSize(mSize);
+        }
+
+        /**
+         * A wrapper around TrieArray.this.get() which caches the most recently used block from mRoot.
+         */
+        private T cachedGet(int index) {
+            if (index < mRootSize) {
+                if (((mCurrentBlockIndex ^ index) & ~MASK) != 0) {
+                    mCurrentBlock = (Object[]) findNode(mRoot, height(mSize) - 1, index, 1);
+                    mCurrentBlockIndex = index;
+                }
+                return (T) mCurrentBlock[index & MASK];
+            } else {
+                return get(index);
+            }
+        }
+
+        @Override
+        public T next() {
+            if (mNextIndex < mSize) {
+                return cachedGet(mNextIndex++);
+            } else {
+                throw new NoSuchElementException(String.format("Iterator next() out of bounds (position: %d, size: %d)", mNextIndex, mSize));
+            }
+        }
+
+        @Override
+        public T previous() {
+            if (0 < mNextIndex) {
+                return cachedGet(--mNextIndex);
+            } else {
+                throw new NoSuchElementException(String.format("Iterator previous() out of bounds (position: %d)", mNextIndex));
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            return mNextIndex < mSize;
+        }
+        @Override
+        public boolean hasPrevious() {
+            return 0 < mNextIndex;
+        }
+        @Override
+        public int nextIndex() {
+            return mNextIndex;
+        }
+        @Override
+        public int previousIndex() {
+            return mNextIndex - 1;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove() called on a persistent iterator (you cannot mutate a TrieArray using its' iterator)");
+        }
+        @Override
+        public void set(T t) {
+            throw new UnsupportedOperationException("set() called on a persistent iterator (you cannot mutate a TrieArray using its' iterator)");
+        }
+        @Override
+        public void add(T t) {
+            throw new UnsupportedOperationException("add() called on a persistent iterator (you cannot mutate a TrieArray using its' iterator)");
+        }
     }
 
     // *** PersistentArray ***

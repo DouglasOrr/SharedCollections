@@ -1,6 +1,7 @@
 package com.dorr.persistent;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /** Abstracts away the details of array implementations, for fair-ish comparison. */
@@ -11,6 +12,7 @@ public abstract class ArrayTester<T> extends Tester {
     public abstract void set(int index, T value);
     public abstract void remove();
     public abstract void remove(int index);
+    public abstract Iterator<T> iterator();
 
     public static class PersistentArrayTester<T> extends ArrayTester<T> {
         private final PersistentArray<T> mEmpty;
@@ -50,6 +52,10 @@ public abstract class ArrayTester<T> extends Tester {
             mArray = mEmpty;
         }
         @Override
+        public Iterator<T> iterator() {
+            return mArray.iterator();
+        }
+        @Override
         public String toString() {
             return "Doug.TrieArray";
         }
@@ -82,6 +88,10 @@ public abstract class ArrayTester<T> extends Tester {
         @Override
         public void remove(int index) {
             mList.remove(index);
+        }
+        @Override
+        public Iterator<T> iterator() {
+            return mList.iterator();
         }
         @Override
         public void reset() {
@@ -127,6 +137,10 @@ public abstract class ArrayTester<T> extends Tester {
             throw new UnsupportedOperationException();
         }
         @Override
+        public Iterator<T> iterator() {
+            throw new UnsupportedOperationException();
+        }
+        @Override
         public void reset() {
             mVector = mEmpty;
         }
@@ -136,3 +150,4 @@ public abstract class ArrayTester<T> extends Tester {
         }
     }
 }
+

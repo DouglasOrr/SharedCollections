@@ -1,23 +1,30 @@
 package com.dorr.persistent;
 
-import junit.framework.TestCase;
 import org.hamcrest.Matchers;
+import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-public class TrieArrayTest extends TestCase {
+public class TrieArrayTest {
+    public static final List<Integer> INTERESTING_SIZES = asList(
+            0, 1, 2, 3, 4, 16,
+            31, 32, 33,
+            63, 64, 65,
+            100, 200, 300, 400, 500, 600,
+            32 * 32 - 1, 32 * 32, 32 * 32 + 1);
+
+    @Test
     public void testEmpty() {
         TrieArray<String> empty = TrieArray.empty();
         assertThat(empty.size(), is(0));
     }
 
+    @Test
     public void testSingleton() {
         TrieArray<String> singleton = TrieArray.singleton("one");
         assertThat(singleton.size(), is(1));
@@ -25,6 +32,7 @@ public class TrieArrayTest extends TestCase {
         assertThat(singleton, equalTo(Collections.singletonList("one")));
     }
 
+    @Test
     public void testAppendUpdate() {
         TrieArray<String> trie = TrieArray.empty();
         ArrayList<String> reference = new ArrayList<String>();
@@ -41,9 +49,10 @@ public class TrieArrayTest extends TestCase {
         trie = trie.update(idx, "monkey");
         assertThat(trie.get(idx), is("monkey"));
         assertThat(trie.get(idx-1), is("item " + (idx-1)));
-        assertThat(trie.get(idx+1), is("item " + (idx+1)));
+        assertThat(trie.get(idx+1), is("item " + (idx + 1)));
     }
 
+    @Test
     public void testRemend() {
         final int limit = 32 * 32 + 1;
         TrieArray<String> trie = TrieArray.empty();
@@ -59,13 +68,9 @@ public class TrieArrayTest extends TestCase {
         }
     }
 
+    @Test
     public void testTake() {
-        for (int limit : asList(
-                0, 1, 2, 3, 4, 16,
-                31, 32, 33,
-                63, 64, 65,
-                100, 200, 300, 400, 500, 600,
-                32*32 - 1, 32*32, 32*32 + 1)) {
+        for (int limit : INTERESTING_SIZES) {
             TrieArray<String> trie = TrieArray.empty();
             for (int i = 0; i < limit; ++i) {
                 trie = trie.append("item " + i);
@@ -78,5 +83,71 @@ public class TrieArrayTest extends TestCase {
                 }
             }
         }
+    }
+
+    @Test
+    public void testIterateCopy() {
+        for (int limit : asList(
+                0, 1, 2, 3, 4, 16,
+                31, 32, 33,
+                63, 64, 65,
+                100, 200, 300, 400, 500, 600,
+                32*32 - 1, 32*32, 32*32 + 1)) {
+            TrieArray<String> trie = TrieArray.empty();
+            ArrayList<String> reference = new ArrayList<String>();
+            for (int i = 0; i < limit; ++i) {
+                trie = trie.append("item " + i);
+                reference.add("item " + i);
+            }
+            assertThat(new ArrayList<String>(trie), equalTo(reference));
+        }
+    }
+
+    @Test
+    public void testIterate() {
+        TrieArray<String> trie = TrieArray.of("one", "two", "three", "four");
+        ListIterator<String> it = trie.listIterator();
+
+        assertThat(it.hasNext(), is(true));
+        assertThat(it.hasPrevious(), is(false));
+        assertThat(it.nextIndex(), is(0));
+
+        assertThat(it.next(), is("one"));
+        assertThat(it.hasNext(), is(true));
+        assertThat(it.hasPrevious(), is(true));
+        assertThat(it.next(), is("two"));
+        assertThat(it.previous(), is("two"));
+        assertThat(it.nextIndex(), is(1));
+        assertThat(it.previousIndex(), is(0));
+
+        assertThat(it.next(), is("two"));
+        assertThat(it.next(), is("three"));
+        assertThat(it.next(), is("four"));
+        assertThat(it.hasNext(), is(false));
+
+        assertThat(trie.listIterator(3).next(), is("four"));
+        assertThat(trie.listIterator(4).hasNext(), is(false));
+    }
+
+    @Test(expected=NoSuchElementException.class)
+    public void testIterateNextNoSuchElement() {
+        Iterator<String> it = TrieArray.of("one", "two").iterator();
+        it.next();
+        it.next();
+        it.next();
+    }
+    @Test(expected=NoSuchElementException.class)
+    public void testIteratePreviousNoSuchElement() {
+        ListIterator<String> it = TrieArray.of("one", "two").listIterator(1);
+        it.previous();
+        it.previous();
+    }
+    @Test(expected=IndexOutOfBoundsException.class)
+    public void testListIteratorAfterBounds() {
+        TrieArray.of("one", "two").listIterator(3);
+    }
+    @Test(expected=IndexOutOfBoundsException.class)
+    public void testListIteratorBeforeBounds() {
+        TrieArray.of("one", "two").listIterator(-1);
     }
 }

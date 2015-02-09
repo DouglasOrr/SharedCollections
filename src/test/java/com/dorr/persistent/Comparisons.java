@@ -7,7 +7,9 @@ import objectexplorer.MemoryMeasurer;
 import objectexplorer.ObjectVisitor;
 
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
@@ -140,6 +142,7 @@ public class Comparisons {
 
                     tester.reset();
                     run.prepare(tester, size);
+                    System.gc(); System.gc();
                     long t0 = System.nanoTime();
                     for (int i = 0; i < runs; ++i) {
                         run.run(tester, size);
@@ -180,6 +183,23 @@ public class Comparisons {
             }
         };
 
+        public static final Run<MapTester<String, Integer>> RUN_MAP_ITERATE
+                = new Run<MapTester<String, Integer>>("Map.iterate", (int) 1E7, (int) 1E8) {
+            @Override
+            public void prepare(MapTester<String, Integer> tester, int size) {
+                for (int i = 0; i < size; ++i) {
+                    tester.put(Integer.toHexString(PRIME * i), i);
+                }
+            }
+            @Override
+            public void run(MapTester<String, Integer> tester, int size) {
+                Iterator<Map.Entry<String, Integer>> it = tester.iterator();
+                while (it.hasNext()) {
+                    it.next();
+                }
+            }
+        };
+
         public static final Run<ArrayTester<Integer>> RUN_ARRAY_ADD
                 = new Run<ArrayTester<Integer>>("Array.add", (int) 1E7, (int) 1E8) {
             @Override
@@ -187,6 +207,44 @@ public class Comparisons {
                 tester.reset();
                 for (int i = 0; i < size; ++i) {
                     tester.add(i);
+                }
+            }
+        };
+
+        public static final Run<ArrayTester<Integer>> RUN_ARRAY_ADD_FIRST
+                = new Run<ArrayTester<Integer>>("Array.addfirst", (int) 1E7, (int) 1E8) {
+            @Override
+            public void run(ArrayTester<Integer> tester, int size) {
+                tester.reset();
+                for (int i = 0; i < size; ++i) {
+                    tester.add(0, i);
+                }
+            }
+        };
+
+        public static final Run<ArrayTester<Integer>> RUN_ARRAY_ADD_MID
+                = new Run<ArrayTester<Integer>>("Array.addnid", (int) 1E7, (int) 1E8) {
+            @Override
+            public void run(ArrayTester<Integer> tester, int size) {
+                tester.reset();
+                for (int i = 0; i < size; ++i) {
+                    tester.add(i / 2, i);
+                }
+            }
+        };
+
+        public static final Run<ArrayTester<Integer>> RUN_ARRAY_UPDATE
+                = new Run<ArrayTester<Integer>>("Array.update", (int) 1E7, (int) 1E8) {
+            @Override
+            public void prepare(ArrayTester<Integer> tester, int size) {
+                for (int i = 0; i < size; ++i) {
+                    tester.add(i);
+                }
+            }
+            @Override
+            public void run(ArrayTester<Integer> tester, int size) {
+                for (int i = 0; i < size; ++i) {
+                    tester.set(i, -i);
                 }
             }
         };
@@ -205,6 +263,23 @@ public class Comparisons {
             }
         };
 
+        public static final Run<ArrayTester<Integer>> RUN_ARRAY_ITERATE
+                = new Run<ArrayTester<Integer>>("Array.iterate", (int) 1E7, (int) 1E9) {
+            @Override
+            public void prepare(ArrayTester<Integer> tester, int size) {
+                for (int i = 0; i < size; ++i) {
+                    tester.add(i);
+                }
+            }
+            @Override
+            public void run(ArrayTester<Integer> tester, int size) {
+                Iterator<Integer> it = tester.iterator();
+                while (it.hasNext()) {
+                    it.next();
+                }
+            }
+        };
+
         /**
          * Run the performance tests.
          * <p>These are not considered part of the unit test suite - as they need to be run
@@ -213,7 +288,7 @@ public class Comparisons {
         public static void main(String[] args) {
             String regex = ".+";
 
-            for (Run<MapTester<String, Integer>> run : asList(RUN_MAP_PUT, RUN_MAP_GET)) {
+            for (Run<MapTester<String, Integer>> run : asList(RUN_MAP_PUT, RUN_MAP_GET, RUN_MAP_ITERATE)) {
                 for (MapTester<String, Integer> tester : TEST_MAPS) {
                     String name = run.toString() + "/" + tester.toString();
                     if (name.matches(regex)) {
@@ -221,7 +296,9 @@ public class Comparisons {
                     }
                 }
             }
-            for (Run<ArrayTester<Integer>> run : asList(RUN_ARRAY_ADD, RUN_ARRAY_REMOVE)) {
+            for (Run<ArrayTester<Integer>> run : asList(
+                    RUN_ARRAY_ADD, RUN_ARRAY_ADD_FIRST, RUN_ARRAY_ADD_MID,
+                    RUN_ARRAY_UPDATE, RUN_ARRAY_REMOVE, RUN_ARRAY_ITERATE)) {
                 for (ArrayTester<Integer> tester : TEST_ARRAYS) {
                     String name = run.toString() + "/" + tester.toString();
                     if (name.matches(regex)) {
