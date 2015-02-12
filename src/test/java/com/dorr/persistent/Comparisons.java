@@ -132,28 +132,6 @@ public class Comparisons {
             public abstract void run(T tester, int size);
         }
 
-        private static <T extends Tester> void profile(T tester, Run run) {
-            System.out.println(Joiner.on(',').join("Size", run.name + "/" + tester));
-            try {
-                for (int size = 10; size <= run.maxSize; size *= 10) {
-                    int runs = Math.max(run.opsPerSize / size, 100);
-
-                    tester.reset();
-                    run.prepare(tester, size);
-                    System.gc(); System.gc();
-                    long t0 = System.nanoTime();
-                    for (int i = 0; i < runs; ++i) {
-                        run.run(tester, size);
-                    }
-                    long t1 = System.nanoTime();
-
-                    System.out.println(Joiner.on(',').join(size, (double) (t1 - t0) / (runs * size)));
-                }
-            } catch (UnsupportedOperationException e) {
-                System.out.println(",not supported");
-            }
-        }
-
         private static final Run<MapTester<String, Integer>> RUN_MAP_PUT
                 = new Run<MapTester<String, Integer>>("Map.put", (int) 1E6, (int) 1E8) {
             @Override
@@ -278,18 +256,40 @@ public class Comparisons {
             }
         };
 
+        private static <T extends Tester> void profile(T tester, Run run) {
+            System.out.println(Joiner.on(',').join("Size", run.name + "/" + tester));
+            try {
+                for (int size = 10; size <= run.maxSize; size *= 10) {
+                    int runs = Math.max(run.opsPerSize / size, 100);
+
+                    tester.reset();
+                    run.prepare(tester, size);
+                    System.gc(); System.gc();
+                    long t0 = System.nanoTime();
+                    for (int i = 0; i < runs; ++i) {
+                        run.run(tester, size);
+                    }
+                    long t1 = System.nanoTime();
+
+                    System.out.println(Joiner.on(',').join(size, (double) (t1 - t0) / (runs * size)));
+                }
+            } catch (UnsupportedOperationException e) {
+                System.out.println(",not supported");
+            }
+        }
+
         /**
          * Run the performance tests.
          * <p>These are not considered part of the unit test suite - as they need to be run
          * in a controlled environment, and are slow.</p>
          */
         public static void main(String[] args) {
-            String regex = ".+";
+            String regexFilter = args.length == 0 ? ".+" : args[0];
 
             for (Run<MapTester<String, Integer>> run : asList(RUN_MAP_PUT, RUN_MAP_GET, RUN_MAP_ITERATE)) {
                 for (MapTester<String, Integer> tester : TEST_MAPS) {
                     String name = run.toString() + "/" + tester.toString();
-                    if (name.matches(regex)) {
+                    if (name.matches(regexFilter)) {
                         profile(tester, run);
                     }
                 }
@@ -299,7 +299,7 @@ public class Comparisons {
                     RUN_ARRAY_UPDATE, RUN_ARRAY_REMOVE, RUN_ARRAY_ITERATE)) {
                 for (ArrayTester<Integer> tester : TEST_ARRAYS) {
                     String name = run.toString() + "/" + tester.toString();
-                    if (name.matches(regex)) {
+                    if (name.matches(regexFilter)) {
                         profile(tester, run);
                     }
                 }

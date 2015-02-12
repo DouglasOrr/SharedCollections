@@ -9,7 +9,7 @@ import java.util.*;
 /**
  * An implementation of the persistent trie array.
  */
-public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>, Externalizable {
+public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>, Externalizable, RandomAccess {
     private static final long serialVersionUID = 5254879707958397211L;
     private static final int NBITS = 5;
     private static final int BLOCK_SIZE = (1 << NBITS);
@@ -63,29 +63,29 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>,
 
     @Override
     public Iterator<T> iterator() {
-        return new Iter(0);
+        return new CachedIterator(0);
     }
     @Override
     public ListIterator<T> listIterator() {
-        return new Iter(0);
+        return new CachedIterator(0);
     }
     @Override
     public ListIterator<T> listIterator(int i) {
         if (0 <= i && i <= mSize) {
-            return new Iter(i);
+            return new CachedIterator(i);
         } else {
             throw new IndexOutOfBoundsException(String.format("listIterator() requested for out of bounds index (position: %d, size: %d)", i, mSize));
         }
     }
 
     // A more efficient iterator implementation than the one provided by AbstractList
-    private class Iter implements ListIterator<T> {
+    private class CachedIterator implements ListIterator<T> {
         private int mNextIndex;
         private final int mRootSize;
         private Object[] mCurrentBlock = null;
         private int mCurrentBlockIndex = -1;
 
-        public Iter(int index) {
+        public CachedIterator(int index) {
             mNextIndex = index;
             mRootSize = rootSize(mSize);
         }
