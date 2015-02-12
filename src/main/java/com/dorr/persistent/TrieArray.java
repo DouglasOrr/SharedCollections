@@ -1,18 +1,24 @@
 package com.dorr.persistent;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.*;
 
 /**
  * An implementation of the persistent trie array.
  */
-public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T> {
+public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>, Externalizable {
+    private static final long serialVersionUID = 5254879707958397211L;
     private static final int NBITS = 5;
     private static final int BLOCK_SIZE = (1 << NBITS);
     private static final int MASK = BLOCK_SIZE - 1;
 
-    private final Object[] mRoot;
-    private final Object mEnd;
-    private final int mSize;
+    // these would all be final, but for Java's horrid readExternal() deserialization
+    private int mSize;
+    private Object[] mRoot;
+    private Object mEnd;
 
     private TrieArray(Object[] root, Object end, int size) {
         mRoot = root;
@@ -370,5 +376,26 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T> 
 
             return new TrieArray<T>(newRoot, newEnd, n);
         }
+    }
+
+    // *** Externalizable ***
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeInt(mSize);
+        for (T item : this) {
+            out.writeObject(item);
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        mSize = in.readInt();
+        TrieArray<Object> a = empty();
+        for (int i = 0; i < mSize; ++i) {
+            a = a.append(in.readObject());
+        }
+        mRoot = a.mRoot;
+        mEnd = a.mEnd;
     }
 }

@@ -5,13 +5,16 @@ import com.google.common.hash.Hashing;
 import junit.framework.TestCase;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.*;
+import java.io.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 public class HashTrieMapTest extends TestCase {
 
@@ -331,5 +334,21 @@ public class HashTrieMapTest extends TestCase {
             long after = System.nanoTime();
             System.out.println("Generator " + generator + " took " + (after - before) / 1.0E6 + " ms");
         }
+    }
+
+    @Test
+    public void testSerialization() throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(bytes);
+        out.writeObject(HashTrieMap.of("one", 1, "two", 2, "three", 3));
+        out.writeObject(HashTrieMap.empty());
+        out.writeObject(HashTrieMap.singleton(123, 12.3f));
+        out.close();
+
+        ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()));
+        Assert.assertThat((HashTrieMap<String, Integer>) in.readObject(), equalTo(HashTrieMap.of("one", 1, "two", 2, "three", 3)));
+        Assert.assertThat((HashTrieMap<Object, Object>) in.readObject(), equalTo(HashTrieMap.empty()));
+        Assert.assertThat((HashTrieMap<Integer, Float>) in.readObject(), equalTo(HashTrieMap.singleton(123, 12.3f)));
+        in.close();
     }
 }

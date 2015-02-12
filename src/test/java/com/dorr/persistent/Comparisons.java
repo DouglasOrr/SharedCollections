@@ -1,6 +1,5 @@
 package com.dorr.persistent;
 
-import clojure.lang.PersistentVector;
 import com.google.common.base.Joiner;
 import objectexplorer.Chain;
 import objectexplorer.MemoryMeasurer;
@@ -10,7 +9,6 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 

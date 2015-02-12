@@ -95,7 +95,8 @@
  * <h2>Collection extensions</h2>
  * <p>Each concrete collection type conforms to the Java collection model, namely extends from a <code>Collection</code>
  * interface (<code>List/Set/Map</code>), provides a zero-argument constructor, and a single-argument <code>Collection</code>
- * constructor. All destructive mutation operations throw <code>UnsupportedOperationException</code>.</p>
+ * constructor. All destructive mutation operations throw <code>UnsupportedOperationException</code>. All collections support
+ * Java's built-in serialization framework.</p>
  *
  * <p>In addition, we provide a few extensions to Java collections, to make creation easy, in particular a value <code>EMPTY</code>,
  * which is always the empty map/list/set, a convenience function <code>empty()</code> (which can be used to hide unchecked

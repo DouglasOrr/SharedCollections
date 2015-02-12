@@ -3,14 +3,20 @@ package com.dorr.persistent;
 import com.google.common.collect.ImmutableSet;
 import junit.framework.TestCase;
 import org.hamcrest.Matchers;
+import org.junit.Assert;
+import org.junit.Test;
 
+import java.io.*;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyCollectionOf;
+import static org.hamcrest.Matchers.equalTo;
 
 // HashTrieSet is an adapter onto HashTrieMap, so there shouldn't be too
 // much testing in it
@@ -57,5 +63,22 @@ public class HashTrieSetTest extends TestCase {
         s = s.without("a");
         assertThat(s.contains("a"), is(false));
         assertThat(s.contains("b"), is(true));
+    }
+
+
+    @Test
+    public void testSerialization() throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(bytes);
+        out.writeObject(HashTrieSet.of(1, 100, 33));
+        out.writeObject(HashTrieSet.empty());
+        out.writeObject(HashTrieSet.singleton("foobar"));
+        out.close();
+
+        ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()));
+        Assert.assertThat((HashTrieSet<Integer>) in.readObject(), equalTo(HashTrieSet.of(1, 100, 33)));
+        Assert.assertThat((HashTrieSet<Object>) in.readObject(), emptyCollectionOf(Object.class));
+        Assert.assertThat((HashTrieSet<String>) in.readObject(), equalTo(HashTrieSet.singleton("foobar")));
+        in.close();
     }
 }

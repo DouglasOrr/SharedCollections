@@ -1,14 +1,15 @@
 package com.dorr.persistent;
 
 import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.*;
 import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class TrieArrayTest {
     public static final List<Integer> INTERESTING_SIZES = asList(
@@ -149,5 +150,21 @@ public class TrieArrayTest {
     @Test(expected=IndexOutOfBoundsException.class)
     public void testListIteratorBeforeBounds() {
         TrieArray.of("one", "two").listIterator(-1);
+    }
+
+    @Test
+    public void testSerialization() throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(bytes);
+        out.writeObject(TrieArray.of(1, 100, 33));
+        out.writeObject(TrieArray.empty());
+        out.writeObject(TrieArray.singleton("foobar"));
+        out.close();
+
+        ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()));
+        Assert.assertThat((TrieArray<Integer>) in.readObject(), equalTo(TrieArray.of(1, 100, 33)));
+        Assert.assertThat((TrieArray<Object>) in.readObject(), emptyCollectionOf(Object.class));
+        Assert.assertThat((TrieArray<String>) in.readObject(), equalTo(TrieArray.singleton("foobar")));
+        in.close();
     }
 }

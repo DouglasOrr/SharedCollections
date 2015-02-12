@@ -2,10 +2,10 @@ package com.dorr.persistent;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.io.*;
 import java.util.*;
 
 import static java.util.Arrays.asList;
@@ -75,6 +75,7 @@ public class LinkedListTest {
         assertThat("structural sharing", new LinkedList<Integer>(oneTwoThree).tail(), sameInstance(oneTwoThree.tail()));
         assertThat(new LinkedList<Integer>(asList(1, 2, 3)), contains(1, 2, 3));
         assertThat(new LinkedList<Integer>(ImmutableSet.of(1, 2, 3)), containsInAnyOrder(1, 2, 3));
+        assertThat(LinkedList.singleton("element"), contains("element"));
     }
 
     @Test
@@ -141,5 +142,21 @@ public class LinkedListTest {
         ListIterator<Integer> it = LinkedList.of(10, 20, 30).listIterator();
         it.next();
         it.set(100);
+    }
+
+    @Test
+    public void testSerialization() throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(bytes);
+        out.writeObject(LinkedList.of(1, 100, 33));
+        out.writeObject(LinkedList.empty());
+        out.writeObject(LinkedList.singleton("foobar"));
+        out.close();
+
+        ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()));
+        assertThat((LinkedList<Integer>) in.readObject(), equalTo(LinkedList.of(1, 100, 33)));
+        assertThat((LinkedList<Object>) in.readObject(), emptyCollectionOf(Object.class));
+        assertThat((LinkedList<String>) in.readObject(), equalTo(LinkedList.singleton("foobar")));
+        in.close();
     }
 }

@@ -1,7 +1,6 @@
 package com.dorr.persistent;
 
 import clojure.lang.IPersistentMap;
-import clojure.lang.PersistentHashMap;
 import scala.Option;
 
 import java.util.HashMap;

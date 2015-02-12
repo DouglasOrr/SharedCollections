@@ -1,14 +1,24 @@
 package com.dorr.persistent;
 
-import java.util.*;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.AbstractSequentialList;
+import java.util.Collection;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
 
 /**
  * Very simple implementation of a persistent singly-linked list.
  */
-public class LinkedList<T> extends AbstractSequentialList<T> implements PersistentList<T> {
-    private final T mHead;
-    private final LinkedList<T> mTail;
-    private final int mSize;
+public class LinkedList<T> extends AbstractSequentialList<T> implements PersistentList<T>, Externalizable {
+    private static final long serialVersionUID = 1432629009835937104L;
+
+    // these would all be final, but for Java's horrid readExternal() deserialization
+    private T mHead;
+    private LinkedList<T> mTail;
+    private int mSize;
 
     private LinkedList(T head, LinkedList<T> tail) {
         mHead = head;
@@ -37,6 +47,9 @@ public class LinkedList<T> extends AbstractSequentialList<T> implements Persiste
     }
     public static final LinkedList<?> EMPTY = new LinkedList();
     public static <T> LinkedList<T> empty() { return (LinkedList<T>) EMPTY; }
+    public static <T> LinkedList<T> singleton(T value) {
+        return new LinkedList<T>(value, LinkedList.<T> empty());
+    }
     public static <T> LinkedList<T> of(T... elements) {
         LinkedList<T> head = empty();
         for (int i = elements.length - 1; 0 <= i; --i) {
@@ -135,5 +148,27 @@ public class LinkedList<T> extends AbstractSequentialList<T> implements Persiste
     @Override
     public int size() {
         return mSize;
+    }
+
+    // *** Externalizable ***
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeInt(mSize);
+        for (T item : this) {
+            out.writeObject(item);
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        mSize = in.readInt();
+        Object[] buffer = new Object[mSize];
+        for (int i = 0; i < mSize; ++i) {
+            buffer[i] = in.readObject();
+        }
+        LinkedList<T> l = (LinkedList<T>) of(buffer);
+        mHead = l.mHead;
+        mTail = l.mTail;
     }
 }

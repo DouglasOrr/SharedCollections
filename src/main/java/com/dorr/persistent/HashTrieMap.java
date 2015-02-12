@@ -1,12 +1,17 @@
 package com.dorr.persistent;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.lang.reflect.Array;
 import java.util.*;
 
 /**
  * An implementation of the persistent hash trie map.
  */
-public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<K,V> {
+public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<K,V>, Externalizable {
+    private static final long serialVersionUID = -976712368400781259L;
 
     private static class Node {
         // child :: Node | PersistentMap$Entry | PersistentMap$Entry[]
@@ -19,12 +24,14 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
             assert Integer.bitCount(hasChild) == children.length;
         }
     }
-
-    // root :: Node | PersistentMap$Entry | PersistentMap$Entry[] | Null
-    private final Object mRoot;
-    private final int mSize;
-    private static final int HASH_MASK = 0x001F;
+    // constants
     private static final int HASH_SHIFT = 5;
+    private static final int HASH_MASK = (1 << HASH_SHIFT) - 1;
+
+    // these would all be final, but for Java's horrid readExternal() deserialization
+    // root :: Node | PersistentMap$Entry | PersistentMap$Entry[] | Null
+    private Object mRoot;
+    private int mSize;
     // cached implementations
     private transient Set<Entry<K, V>> mEntrySet = null;
     private transient Set<K> mKeySet = null;
@@ -513,6 +520,27 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
         public void remove() {
             throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its iterator)");
         }
+    }
+
+    // *** Externalizable ***
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeInt(mSize);
+        for (Map.Entry<K,V> entry : this.entrySet()) {
+            out.writeObject(entry);
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        mSize = in.readInt();
+        HashTrieMap<K,V> m = HashTrieMap.empty();
+        for (int i = 0; i < mSize; ++i) {
+            Map.Entry<K,V> entry = (Map.Entry<K,V>) in.readObject();
+            m = m.with(entry.getKey(), entry.getValue());
+        }
+        mRoot = m.mRoot;
     }
 
     // Debugging methods
