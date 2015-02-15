@@ -45,7 +45,7 @@ public abstract class ArrayTester<T> extends Tester {
         }
         @Override
         public void remove(int index) {
-            mArray = PersistentArrays.erase(mArray, index);
+            mArray = PersistentArrays.remove(mArray, index);
         }
         @Override
         public void reset() {

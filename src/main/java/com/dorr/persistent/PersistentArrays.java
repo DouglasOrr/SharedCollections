@@ -2,7 +2,14 @@ package com.dorr.persistent;
 
 import java.util.ListIterator;
 
-public class PersistentArrays {
+/**
+ * Utility methods for working with {@link com.dorr.persistent.PersistentArray} values.
+ * These algorithms are provided here with an efficiency warning - while all the direct
+ * PersistentArray operations are log(N) or better, these methods can have O(N log(N))
+ * worst case computational complexity.
+ */
+public final class PersistentArrays {
+    private PersistentArrays() { }
     /**
      * Returns a new array, with <code>value</code> at <code>index</code>.
      * Elements after <code>index</code> are shifted forward by one place to make room.
@@ -30,10 +37,10 @@ public class PersistentArrays {
      * (The original array is unmodified.)
      * Elements after <code>index</code> are shifted backward by one place to make room.
      * @param array the source array
-     * @param index the location to erase a value
+     * @param index the location to remove a value
      * @return a new array, with the previous value of <code>index</code> removed.
      */
-    public static <T> PersistentArray<T> erase(PersistentArray<T> array, int index) {
+    public static <T> PersistentArray<T> remove(PersistentArray<T> array, int index) {
         // take the head
         PersistentArray<T> result = array.take(index);
         // append any tail elements one-by-one

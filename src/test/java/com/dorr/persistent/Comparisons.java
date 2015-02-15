@@ -240,7 +240,7 @@ public class Comparisons {
         };
 
         public static final Run<ArrayTester<Integer>> RUN_ARRAY_ITERATE
-                = new Run<ArrayTester<Integer>>("Array.iterate", (int) 1E7, (int) 1E9) {
+                = new Run<ArrayTester<Integer>>("Array.iterate", (int) 1E7, (int) 1E8) {
             @Override
             public void prepare(ArrayTester<Integer> tester, int size) {
                 for (int i = 0; i < size; ++i) {

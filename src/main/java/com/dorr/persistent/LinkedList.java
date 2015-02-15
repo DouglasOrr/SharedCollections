@@ -10,7 +10,7 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
 /**
- * Very simple implementation of a persistent singly-linked list.
+ * A persistent singly-linked list.
  */
 public class LinkedList<T> extends AbstractSequentialList<T> implements PersistentList<T>, Externalizable {
     private static final long serialVersionUID = 1432629009835937104L;
