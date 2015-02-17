@@ -1,6 +1,5 @@
 package com.dorr.persistent;
 
-import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,6 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 public class TrieArrayTest {
+    // must be ordered
     public static final List<Integer> INTERESTING_SIZES = asList(
             0, 1, 2, 3, 4, 16,
             31, 32, 33,
@@ -19,10 +19,204 @@ public class TrieArrayTest {
             100, 200, 300, 400, 500, 600,
             32 * 32 - 1, 32 * 32, 32 * 32 + 1);
 
+    private interface Op {
+        void run(int n, List<String> reference, TrieArray<String> array);
+    }
+
+    private void foreachInterestingSize(Op op) {
+        int n = 0;
+        TrieArray<String> array = TrieArray.empty();
+        List<String> reference = new ArrayList<String>();
+        for (int targetSize : INTERESTING_SIZES) {
+            while (n < targetSize) {
+                array = array.append("item " + n);
+                reference.add("item " + n);
+                ++n;
+            }
+            op.run(targetSize, new ArrayList<String>(reference), array);
+        }
+    }
+
+    private void checkConsistency(PersistentArray<String> array, List<String> reference) {
+        assertThat(array, equalTo(reference));
+        assertThat(new ArrayList<String>(array), equalTo(reference));
+        assertThat(array.size(), equalTo(reference.size()));
+        assertThat(array.isEmpty(), equalTo(reference.isEmpty()));
+        for (int i = 0; i < reference.size(); ++i) {
+            assertThat(array.get(i), equalTo(reference.get(i)));
+        }
+
+        // forward iteration
+        ListIterator<String> rIt = reference.listIterator();
+        ListIterator<String> aIt = array.listIterator();
+        while (rIt.hasNext()) {
+            assertThat(aIt.nextIndex(), equalTo(rIt.nextIndex()));
+            assertThat(aIt.previousIndex(), equalTo(rIt.previousIndex()));
+            assertThat(aIt.hasNext(), equalTo(rIt.hasNext()));
+            assertThat(aIt.hasPrevious(), equalTo(rIt.hasPrevious()));
+            assertThat(aIt.next(), equalTo(rIt.next()));
+        }
+
+        // reverse iteration
+        rIt = reference.listIterator(reference.size());
+        aIt = array.listIterator(array.size());
+        while (rIt.hasPrevious()) {
+            assertThat(aIt.nextIndex(), equalTo(rIt.nextIndex()));
+            assertThat(aIt.previousIndex(), equalTo(rIt.previousIndex()));
+            assertThat(aIt.hasNext(), equalTo(rIt.hasNext()));
+            assertThat(aIt.hasPrevious(), equalTo(rIt.hasPrevious()));
+            assertThat(aIt.previous(), equalTo(rIt.previous()));
+        }
+
+        // round trip serialization
+
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            ObjectOutputStream out = new ObjectOutputStream(bytes);
+            out.writeObject(array);
+            out.writeInt(0xdeadbeef); // make sure we pad correctly
+            out.close();
+
+            ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()));
+            assertThat((PersistentArray<String>) in.readObject(), equalTo(reference));
+            assertThat(in.readInt(), equalTo(0xdeadbeef));
+            in.close();
+
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        } catch (ClassNotFoundException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    // basic use
+
+    @Test
+    public void testAppend() {
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(int n, List<String> reference, TrieArray<String> array) {
+                assertThat(array.size(), is(n));
+                checkConsistency(array, reference);
+
+                TrieArray<String> appended = array.append("foo");
+                assertThat(array, equalTo(reference));
+                assertThat(appended.size(), is(n+1));
+                assertThat(appended.get(n), is("foo"));
+            }
+        });
+    }
+
+    @Test
+    public void testRemend() {
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(int n, List<String> reference, TrieArray<String> array) {
+                List<String> newReference = new ArrayList<String>(reference);
+                TrieArray<String> newArray = array;
+                for (int i = 0; i < n; ++i) {
+                    newReference.remove(newReference.size() - 1);
+                    newArray = newArray.remend();
+                    checkConsistency(newArray, newReference);
+                }
+                // original unmodified
+                checkConsistency(array, reference);
+            }
+        });
+    }
+
+    @Test
+    public void testUpdate() {
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(int n, List<String> reference, TrieArray<String> array) {
+                List<String> newReference = new ArrayList<String>(reference);
+                TrieArray<String> newArray = array;
+                for (int i = 0; i < n; ++i) {
+                    newReference.set(i, "updated " + i);
+                    newArray = newArray.update(i, "updated " + i);
+                    assertThat(newArray, equalTo(newReference));
+                    checkConsistency(newArray, newReference);
+                }
+                // original unmodified
+                assertThat(array.size(), equalTo(n));
+                checkConsistency(array, reference);
+            }
+        });
+    }
+
+    @Test
+    public void testTake() {
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(int n, List<String> reference, TrieArray<String> array) {
+                for (int i = 0; i < n; ++i) {
+                    checkConsistency(array.take(i), reference.subList(0, i));
+                    // original unmodified
+                    assertThat(array, equalTo(reference));
+                }
+            }
+        });
+    }
+
+    @Test
+    public void testInsert() {
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(int n, List<String> reference, TrieArray<String> array) {
+                for (int i = 0; i <= n; ++i) {
+                    List<String> newReference = new ArrayList<String>(reference);
+                    newReference.add(i, "foobar");
+                    checkConsistency(PersistentArrays.insert(array, i, "foobar"), newReference);
+                }
+                checkConsistency(array, reference);
+            }
+        });
+    }
+
+    @Test
+    public void testRemove() {
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(int n, List<String> reference, TrieArray<String> array) {
+                for (int i = 0; i < n; ++i) {
+                    List<String> newReference = new ArrayList<String>(reference);
+                    newReference.remove(i);
+                    checkConsistency(PersistentArrays.remove(array, i), newReference);
+                }
+                checkConsistency(array, reference);
+            }
+        });
+    }
+
+    @Test
+    public void testCopy() {
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(int n, List<String> reference, TrieArray<String> array) {
+                assertThat(new TrieArray<String>(reference), equalTo(reference));
+                assertThat(new TrieArray<String>(array), equalTo(reference));
+            }
+        });
+    }
+
+    // special cases
+
     @Test
     public void testEmpty() {
-        TrieArray<String> empty = TrieArray.empty();
-        assertThat(empty.size(), is(0));
+        for (TrieArray<Object> empty : Arrays.asList(
+                TrieArray.EMPTY,
+                TrieArray.empty(),
+                TrieArray.of(),
+                new TrieArray<Object>(),
+                new TrieArray<Object>(Collections.emptyList()),
+                new TrieArray<Object>(new ArrayList<Object>())
+        )) {
+            assertThat(empty.size(), is(0));
+            assertThat(empty.isEmpty(), is(true));
+            assertThat(empty.toString(), is("[]"));
+            assertThat(empty, equalTo(Collections.emptyList()));
+        }
     }
 
     @Test
@@ -34,74 +228,23 @@ public class TrieArrayTest {
     }
 
     @Test
-    public void testAppendUpdate() {
-        TrieArray<String> trie = TrieArray.empty();
-        ArrayList<String> reference = new ArrayList<String>();
-        for (int i = 0; i < 32 * 32 + 1; ++i) {
-            trie = trie.append("item " + i);
+    public void testOf() {
+        TrieArray<String> array = TrieArray.of("one", "two", "three");
+        assertThat(array.size(), is(3));
+        assertThat(array.get(0), is("one"));
+        assertThat(array.get(2), is("three"));
+        assertThat(array, equalTo(asList("one", "two", "three")));
+    }
+
+    @Test
+    public void testAppendMassive() {
+        List<String> reference = new ArrayList<String>();
+        TrieArray<String> array = new TrieArray<String>();
+        for (int i = 0; i < 32 * 32 * 32 + 1; ++i) {
             reference.add("item " + i);
-            for (int j = 0; j <= i; ++j) {
-                assertThat(trie.get(j), equalTo("item " + j));
-            }
+            array = array.append("item " + i);
         }
-        assertThat(trie, Matchers.<List<String>> equalTo(reference));
-
-        int idx = 3*32+5;
-        trie = trie.update(idx, "monkey");
-        assertThat(trie.get(idx), is("monkey"));
-        assertThat(trie.get(idx-1), is("item " + (idx-1)));
-        assertThat(trie.get(idx+1), is("item " + (idx + 1)));
-    }
-
-    @Test
-    public void testRemend() {
-        final int limit = 32 * 32 + 1;
-        TrieArray<String> trie = TrieArray.empty();
-        for (int i = 0; i < limit; ++i) {
-            trie = trie.append("item " + i);
-        }
-        for (int i = limit; i != 0; --i) {
-            trie = trie.remend();
-            assertThat(trie.size(), is(i - 1));
-            for (int j = 0; j < i - 1; ++j) {
-                assertThat(trie.get(j), is("item " + j));
-            }
-        }
-    }
-
-    @Test
-    public void testTake() {
-        for (int limit : INTERESTING_SIZES) {
-            TrieArray<String> trie = TrieArray.empty();
-            for (int i = 0; i < limit; ++i) {
-                trie = trie.append("item " + i);
-            }
-            for (int i = 0; i <= limit; ++i) {
-                TrieArray<String> head = trie.take(i);
-                assertThat(head.size(), is(i));
-                for (int j = 0; j < i; ++j) {
-                    assertThat(head.get(j), is("item " + j));
-                }
-            }
-        }
-    }
-
-    @Test
-    public void testIterateCopy() {
-        for (int limit : asList(
-                0, 1, 2, 3, 4, 16,
-                31, 32, 33,
-                63, 64, 65,
-                100, 200, 300, 400, 500, 600,
-                32*32 - 1, 32*32, 32*32 + 1)) {
-            TrieArray<String> trie = TrieArray.empty();
-            ArrayList<String> reference = new ArrayList<String>();
-            for (int i = 0; i < limit; ++i) {
-                trie = trie.append("item " + i);
-                reference.add("item " + i);
-            }
-            assertThat(new ArrayList<String>(trie), equalTo(reference));
-        }
+        checkConsistency(array, reference);
     }
 
     @Test

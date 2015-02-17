@@ -246,7 +246,7 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>,
             }
             return new TrieArray<T>(newRoot, mEnd, mSize);
 
-        } else if (index - rootSize == 1) {
+        } else if (mSize - rootSize == 1) {
             return new TrieArray<T>(mRoot, value, mSize);
 
         } else {

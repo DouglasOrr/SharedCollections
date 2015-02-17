@@ -188,7 +188,7 @@ public class Comparisons {
         };
 
         public static final Run<ArrayTester<Integer>> RUN_ARRAY_ADD_FIRST
-                = new Run<ArrayTester<Integer>>("Array.addfirst", (int) 1E7, (int) 1E8) {
+                = new Run<ArrayTester<Integer>>("Array.addfirst", (int) 1E4, (int) 1E5) {
             @Override
             public void run(ArrayTester<Integer> tester, int size) {
                 tester.reset();
@@ -199,7 +199,7 @@ public class Comparisons {
         };
 
         public static final Run<ArrayTester<Integer>> RUN_ARRAY_ADD_MID
-                = new Run<ArrayTester<Integer>>("Array.addnid", (int) 1E7, (int) 1E8) {
+                = new Run<ArrayTester<Integer>>("Array.addmid", (int) 1E4, (int) 1E5) {
             @Override
             public void run(ArrayTester<Integer> tester, int size) {
                 tester.reset();
@@ -240,7 +240,7 @@ public class Comparisons {
         };
 
         public static final Run<ArrayTester<Integer>> RUN_ARRAY_ITERATE
-                = new Run<ArrayTester<Integer>>("Array.iterate", (int) 1E7, (int) 1E8) {
+                = new Run<ArrayTester<Integer>>("Array.iterate", (int) 1E7, (int) 1E9) {
             @Override
             public void prepare(ArrayTester<Integer> tester, int size) {
                 for (int i = 0; i < size; ++i) {
@@ -275,6 +275,8 @@ public class Comparisons {
                 }
             } catch (UnsupportedOperationException e) {
                 System.out.println(",not supported");
+            } finally {
+                tester.reset();
             }
         }
 

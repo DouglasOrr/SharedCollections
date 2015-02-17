@@ -109,10 +109,13 @@ public class HashTrieMapTest extends TestCase {
                 Map<K,V> baseline = state.getValue();
 
                 assertThat(map, equalTo(baseline));
+                assertThat(map.hashCode(), equalTo(baseline.hashCode()));
                 assertThat(map.entrySet(), equalTo(baseline.entrySet()));
                 assertThat(map.keySet(), equalTo(baseline.keySet()));
                 assertThat(map.values(), Matchers.containsInAnyOrder(baseline.values().toArray()));
 
+                assertThat(new HashTrieMap<K,V>(map), equalTo(baseline));
+                assertThat(new HashTrieMap<K,V>(baseline), equalTo(baseline));
                 assertThat("copy entrySet (force use of iteration)",
                         new HashSet<Map.Entry<K,V>>(map.entrySet()), equalTo(baseline.entrySet()));
                 assertThat("copy keySet (force use of iteration)",
@@ -122,8 +125,6 @@ public class HashTrieMapTest extends TestCase {
                 assertThat(map.entrySet().size(), equalTo(baseline.entrySet().size()));
                 assertThat(map.keySet().size(), equalTo(baseline.keySet().size()));
                 assertThat(map.values().size(), equalTo(baseline.values().size()));
-
-                assertThat(map.hashCode(), equalTo(baseline.hashCode()));
 
                 for (K key : mKeySuperset) {
                     assertThat(map.get(key), equalTo(baseline.get(key)));
@@ -166,6 +167,24 @@ public class HashTrieMapTest extends TestCase {
         }
     }
 
+    public void testSingleton() {
+        HashTrieMap<String, Integer> m = HashTrieMap.singleton("meaning", 42);
+        assertThat(m.size(), is(1));
+        assertThat(m.get("meaning"), is(42));
+        assertThat(m.get("everything"), equalTo(null));
+        assertThat(m.get(1), equalTo(null));
+    }
+
+    public void testOf() {
+        HashTrieMap<String, Integer> m = HashTrieMap.of("one", 1, "two", 2, "three", 3);
+        assertThat(m.size(), is(3));
+        assertThat(m.get("one"), is(1));
+        assertThat(m.get("two"), is(2));
+        assertThat(m.get("three"), is(3));
+        assertThat(m.get("four"), equalTo(null));
+        assertThat(m.get(1), equalTo(null));
+    }
+
     public void testSmallMaps() {
         Verifier<String, Integer> test = new Verifier<String, Integer>();
         test.put("one", 1); // insert
@@ -194,6 +213,7 @@ public class HashTrieMapTest extends TestCase {
         test.put(th("00111", 0x0007), 4); // node, 4* children (insert mid)
         test.put(th("00001", 0x0001), 5); // node, 5* children (insert first)
 
+        test.remove(th("xxxxx", 0x0007)); // missing
         test.remove(th("00001", 0x0001)); // first
         test.remove(th("00111", 0x0007)); // mid
         test.remove(th("01111", 0x000f)); // last
@@ -267,12 +287,14 @@ public class HashTrieMapTest extends TestCase {
             return mName;
         }
     }
+
     private static final IntegerGenerator GOOD_RANDOM_GENERATOR = new IntegerGenerator("goodhash") {
         @Override
         public int next(Random random) {
             return random.nextInt();
         }
     };
+
     private static final IntegerGenerator WEIRD_RANDOM_GENERATOR = new IntegerGenerator("weirdhash") {
         @Override
         public int next(Random random) {
@@ -282,6 +304,7 @@ public class HashTrieMapTest extends TestCase {
             return Integer.reverse(Float.floatToIntBits(random.nextFloat()));
         }
     };
+
     private static IntegerGenerator limitedRandomGenerator(final int range) {
         return new IntegerGenerator("limitedhash:" + range) {
             @Override
@@ -318,6 +341,10 @@ public class HashTrieMapTest extends TestCase {
                 assertThat(map, Matchers.<Map<TestHash<Integer>, Integer>> equalTo(reference));
             }
 
+            // check copying
+            assertThat(new HashTrieMap<TestHash<Integer>, Integer>(map), Matchers. <Map<TestHash<Integer>, Integer>> is(reference));
+            assertThat(new HashTrieMap<TestHash<Integer>, Integer>(reference), Matchers. <Map<TestHash<Integer>, Integer>> is(reference));
+
             // remove all the keys, checking validity periodically
             List<TestHash<Integer>> keys = new ArrayList<TestHash<Integer>>(reference.keySet());
             Collections.shuffle(keys, random);
@@ -325,7 +352,8 @@ public class HashTrieMapTest extends TestCase {
             for (int n = 0; n < nOuter; ++n) {
                 for (int i = 0; i < nInner; ++i) {
                     TestHash<Integer> key = keyIterator.next();
-                    map = map.without(key);
+                    // also try to remve a missing key with the same hash
+                    map = map.without(th(-key.value, key.hash)).without(key);
                     reference.remove(key);
                 }
                 assertThat(map, Matchers.<Map<TestHash<Integer>, Integer>> equalTo(reference));
