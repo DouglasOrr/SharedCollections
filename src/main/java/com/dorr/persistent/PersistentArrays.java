@@ -1,7 +1,5 @@
 package com.dorr.persistent;
 
-import java.util.ListIterator;
-
 /**
  * Utility methods for working with {@link com.dorr.persistent.PersistentArray} values.
  * These algorithms are provided here with an efficiency warning - while all the direct
@@ -20,16 +18,9 @@ public final class PersistentArrays {
      * @return a new array, with <code>value</code> at <code>index</code>
      */
     public static <T> PersistentArray<T> insert(PersistentArray<T> array, int index, T value) {
-        // take the head
-        PersistentArray<T> result = array.take(index);
-        // append the value to be inserted
-        result = result.append(value);
-        // append any tail elements one-by-one
-        ListIterator<T> tail = array.listIterator(index);
-        while (tail.hasNext()) {
-            result = result.append(tail.next());
-        }
-        return result;
+        return array.take(index)
+                    .append(value)
+                    .appendAll(array.subList(index, array.size()));
     }
 
     /**
@@ -41,13 +32,7 @@ public final class PersistentArrays {
      * @return a new array, with the previous value of <code>index</code> removed.
      */
     public static <T> PersistentArray<T> remove(PersistentArray<T> array, int index) {
-        // take the head
-        PersistentArray<T> result = array.take(index);
-        // append any tail elements one-by-one
-        ListIterator<T> tail = array.listIterator(index + 1);
-        while (tail.hasNext()) {
-            result = result.append(tail.next());
-        }
-        return result;
+        return array.take(index)
+                    .appendAll(array.subList(index + 1, array.size()));
     }
 }

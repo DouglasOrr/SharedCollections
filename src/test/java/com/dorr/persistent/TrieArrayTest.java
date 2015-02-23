@@ -200,6 +200,24 @@ public class TrieArrayTest {
         });
     }
 
+    @Test
+    public void testAppendAll() {
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(int n0, final List<String> reference0, final TrieArray<String> array0) {
+                foreachInterestingSize(new Op() {
+                    @Override
+                    public void run(int n1, List<String> reference1, TrieArray<String> array1) {
+                        //System.out.println(String.format("[%d].appendAll([%d])", array0.size(), array1.size()));
+                        List<String> concatReference = new ArrayList<String>(reference0);
+                        concatReference.addAll(reference1);
+                        checkConsistency(array0.appendAll(array1), concatReference);
+                    }
+                });
+            }
+        });
+    }
+
     // special cases
 
     @Test

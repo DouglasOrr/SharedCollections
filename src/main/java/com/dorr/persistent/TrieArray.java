@@ -317,6 +317,141 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>,
         }
     }
 
+    /**
+     * Build a new a trie as a concatenation of an existing trie and elements from an iterator.
+     * <ul>
+     * <li>do no copying from old while level > oldRootLevel (just create array to contain 'endIndex' & recurse)</li>
+     * <li>otherwise, copy prefix from oldNode, then expand to contain 'endIndex' & recurse</li>
+     * <li>at leaf, start drawing new elements from 'elements' iterator</li>
+     * </ul>
+     * @param oldNode point in the old trie that we're copying from
+     * @param oldRootLevel the level of the root in the old trie
+     * @param level the level in the trie we are currently at (0 = level containing leaves)
+     * @param beginIndex the start of our current children range
+     * @param endIndex the end of our current children range
+     * @param elements elements to insert after the old trie
+     * @return a new node that contains the old, filled up with elements
+     */
+    private static Object[] concatTrie(Object[] oldNode, int oldRootLevel,
+                                       int level, int beginIndex, int endIndex,
+                                       Iterator<Object> elements) {
+        assert(0 <= level);
+        final int childStepSize = 1 << (NBITS * level);
+        // the new subtree must be big enough to contain the range [beginIndex endIndex]
+        final int nextSize = Math.min(endIndex - beginIndex + childStepSize, BLOCK_SIZE << (NBITS * level)) >>> (NBITS * level);
+
+        Object[] next;
+        int nextFillIndex;
+        if (oldNode != null && level <= oldRootLevel) {
+            // copy a prefix from the old, then start filling with the new
+            assert(0 < oldNode.length);
+            next = Arrays.copyOf(oldNode, nextSize);
+            int oldLast = oldNode.length - 1;
+            if (0 < level) {
+                int oldLastBegin = beginIndex + oldLast * childStepSize;
+                next[oldLast] = concatTrie((Object[]) oldNode[oldLast], oldRootLevel,
+                        level - 1, oldLastBegin, Math.min(endIndex, oldLastBegin + childStepSize - 1),
+                        elements);
+            }
+            nextFillIndex = oldLast + 1;
+
+        } else {
+            // simple case - nothing to copy from the old
+            next = new Object[nextSize];
+            nextFillIndex = 0;
+            assert(0 < next.length && next.length <= BLOCK_SIZE);
+        }
+
+        if (level == 0) {
+            // children are terminals - so just fill them in
+            for (int i = nextFillIndex; i < next.length; ++i) {
+                next[i] = elements.next();
+            }
+        } else {
+            // children must be created recursively
+            int nextBegin = beginIndex + childStepSize * nextFillIndex;
+            for (int i = nextFillIndex; i < next.length; ++i) {
+                int nextEnd = Math.min(endIndex, nextBegin + childStepSize - 1);
+                next[i] = concatTrie(i == 0 ? oldNode : null, oldRootLevel, level - 1, nextBegin, nextEnd, elements);
+                nextBegin += childStepSize;
+            }
+        }
+        return next;
+    }
+
+    @Override
+    public TrieArray<T> appendAll(final Collection<T> values) {
+        if (values.isEmpty()) {
+            return this;
+
+        } else {
+            final int oldRootSize = rootSize(mSize);
+            final int oldEndSize = mSize - oldRootSize;
+            final int newSize = mSize + values.size();
+            final int newRootSize = rootSize(newSize);
+            final int newEndSize = newSize - newRootSize;
+
+            // shortcut for cases where just the end array is extended
+            if (newRootSize == oldRootSize) {
+                if (newEndSize == 1) {
+                    assert(oldEndSize == 0);
+                    return new TrieArray<T>(mRoot, values.iterator().next(), newSize);
+                } else {
+                    Object[] newEnd = new Object[newEndSize];
+                    // copy the old elements
+                    if (oldEndSize == 1) {
+                        newEnd[0] = mEnd;
+                    } else if (1 < oldEndSize) {
+                        System.arraycopy(mEnd, 0, newEnd, 0, ((Object[]) mEnd).length);
+                    }
+                    // append the new elements
+                    Iterator<T> it = values.iterator();
+                    for (int i = oldEndSize; i < newEndSize; ++i) {
+                        newEnd[i] = it.next();
+                    }
+                    return new TrieArray<T>(mRoot, newEnd, newSize);
+                }
+            }
+
+            // An iterator that first returns elements of mEnd, then from values
+            final Iterator<Object> endIterator = new Iterator<Object>() {
+                int mIndex = 0;
+                final Iterator<T> mValuesIt = values.iterator();
+                @Override
+                public boolean hasNext() {
+                    return mIndex < oldEndSize || mValuesIt.hasNext();
+                }
+                @Override
+                public Object next() {
+                    if (oldEndSize == 1 && mIndex == 0) {
+                        ++mIndex;
+                        return mEnd;
+
+                    } else if (mIndex < oldEndSize) {
+                        return ((Object[]) mEnd)[mIndex++];
+
+                    } else {
+                        return mValuesIt.next();
+                    }
+                }
+            };
+
+            Object[] newRoot = concatTrie(mRoot, height(mSize) - 1, height(newSize) - 1, 0, newRootSize - 1, endIterator);
+
+            if (newEndSize == 1) {
+                // singleton
+                return new TrieArray<T>(newRoot, endIterator.next(), newSize);
+            } else {
+                // nothing to copy from the old
+                Object[] newEnd = new Object[newEndSize];
+                for (int i = 0; i < newEndSize; ++i) {
+                    newEnd[i] = endIterator.next();
+                }
+                return new TrieArray<T>(newRoot, newEnd, newSize);
+            }
+        }
+    }
+
     @Override
     public TrieArray<T> remend() {
         return take(mSize - 1);

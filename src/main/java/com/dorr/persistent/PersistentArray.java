@@ -1,5 +1,6 @@
 package com.dorr.persistent;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -20,14 +21,27 @@ public interface PersistentArray<T> extends List<T> {
     /**
      * Returns a new array, with <code>value</code> added on to the end.
      * (The original array is unmodified.)
+     * <p>If you want to append multiple values, consider using {@link #appendAll(java.util.Collection)},
+     * as this can be more efficient.</p>
      * @param value the value at the end of the returned array.
      * @return a new array, with <code>value</code> at the end
      */
     PersistentArray<T> append(T value);
 
     /**
+     * Returns a new array, with all elements of <code>values</code> added on to the
+     * end, in iteration order.
+     * (The original array is unmodified.)
+     * @param values the values at the end of the returned array
+     * @return a new array with <code>values</code> at the end
+     */
+    PersistentArray<T> appendAll(Collection<T> values);
+
+    /**
      * Returns a new array, without the last value.
      * (The original array is unmodified.)
+     * <p>If you want to remove multiple values, consider using {@link #take(int)},
+     * as this can be more efficient.</p>
      * @return a new array, without the last value.
      */
     PersistentArray<T> remend() throws NoSuchElementException;

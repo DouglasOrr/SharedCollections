@@ -188,7 +188,7 @@ public class Comparisons {
         };
 
         public static final Run<ArrayTester<Integer>> RUN_ARRAY_ADD_FIRST
-                = new Run<ArrayTester<Integer>>("Array.addfirst", (int) 1E4, (int) 1E5) {
+                = new Run<ArrayTester<Integer>>("Array.addfirst", (int) 1E4, (int) 1E6) {
             @Override
             public void run(ArrayTester<Integer> tester, int size) {
                 tester.reset();
