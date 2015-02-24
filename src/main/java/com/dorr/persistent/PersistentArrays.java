@@ -25,8 +25,8 @@ public final class PersistentArrays {
 
     /**
      * Returns a new array, without the element that was at <code>index</code>.
-     * (The original array is unmodified.)
      * Elements after <code>index</code> are shifted backward by one place to make room.
+     * (The original array is unmodified.)
      * @param array the source array
      * @param index the location to remove a value
      * @return a new array, with the previous value of <code>index</code> removed.

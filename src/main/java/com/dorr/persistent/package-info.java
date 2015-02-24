@@ -152,9 +152,9 @@
  * This time, the scope of the collection is potentially large, and certainly complex (it can change at runtime as event
  * handlers are added), so I would prefer the persistent {@link com.dorr.persistent.HashTrieSet}.</li>
  * </ul>
- * <p>Often your decisions won't be as extreme as this - but as you gain confidence in using persistent collections, I
- * would suggest that most collections that are exposed by a method or field on a class or interface should provide
- * the no-modification guarantee.</p>
+ * <p>Often your decisions won't be as obvious as this - but as you gain confidence in using persistent collections, I
+ * suggest that most collections that are exposed by a method or field on a class or interface should provide the
+ * no-modification guarantee.</p>
  *
  * <h2>Collection extensions</h2>
  * <p>Each concrete collection type conforms to the Java collection model, namely extends from a <code>Collection</code>
