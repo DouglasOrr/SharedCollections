@@ -434,6 +434,10 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>,
                         return mValuesIt.next();
                     }
                 }
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException();
+                }
             };
 
             Object[] newRoot = concatTrie(mRoot, height(mSize) - 1, height(newSize) - 1, 0, newRootSize - 1, endIterator);
