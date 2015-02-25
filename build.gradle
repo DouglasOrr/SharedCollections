@@ -44,32 +44,34 @@ uploadArchives {
         mavenDeployer {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: "$sonatypeUsername", password: "$sonatypePassword")
+            if (project.hasProperty("sonatypeUsername")) {
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: "$sonatypeUsername", password: "$sonatypePassword")
+                }
             }
-             pom.project {
-               name 'Persistent'
-               packaging 'jar'
-               description 'A very small persistent data structures library for use in plain old Java'
-               url 'http://douglasorr.github.io/Persistent/'
+            pom.project {
+                name 'Persistent'
+                packaging 'jar'
+                description 'A very small persistent data structures library for use in plain old Java'
+                url 'http://douglasorr.github.io/Persistent/'
 
-               scm {
-                   url 'scm:git@github.com:DouglasOrr/Persistent.git'
-                   connection 'scm:git@github.com:DouglasOrr/Persistent.git'
-                   developerConnection 'scm:git@github.com:DouglasOrr/Persistent.git'
-               }
+                scm {
+                    url 'scm:git@github.com:DouglasOrr/Persistent.git'
+                    connection 'scm:git@github.com:DouglasOrr/Persistent.git'
+                    developerConnection 'scm:git@github.com:DouglasOrr/Persistent.git'
+                }
                 licenses {
-                   license {
-                       name 'MIT License'
-                       url 'http://opensource.org/licenses/MIT'
-                   }
-               }
-               developers {
-                   developer {
-                       id 'douglasorr'
-                       name 'Douglas Orr'
-                   }
-               }
+                    license {
+                        name 'MIT License'
+                        url 'http://opensource.org/licenses/MIT'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'douglasorr'
+                        name 'Douglas Orr'
+                    }
+                }
             }
         }
     }
