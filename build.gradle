@@ -1,18 +1,84 @@
 apply plugin: 'java'
+apply plugin: 'signing'
+apply plugin: 'maven'
 
+group = "com.dorr.persistent"
 version = '0.1'
+def source_version = "git rev-parse HEAD".execute().text
 
 compileJava {
     sourceCompatibility = 1.6
     targetCompatibility = 1.6
 }
-
 tasks.withType(JavaCompile) {
+    // apply this to main & test compilation
     options.compilerArgs << "-Xlint:unchecked"
 }
-
-tasks.withType(Javadoc) {
+jar {
+    manifest {
+        attributes("Specification-Title": "Persistent data structures",
+                   "Specification-Vendor": "Douglas Orr",
+                   "Specification-Version": version,
+                   "Implementation-Title": "com.dorr.persistent",
+                   "Implementation-Version": source_version)
+    }
+}
+javadoc {
     options.addStringOption("link", "http://docs.oracle.com/javase/7/docs/api")
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from 'build/docs/javadoc'
+}
+
+signing {
+    sign configurations.archives
+}
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
+            }
+             pom.project {
+               name 'Persistent'
+               packaging 'jar'
+               description 'A very small persistent data structures library for use in plain old Java'
+               url 'http://douglasorr.github.io/Persistent/'
+
+               scm {
+                   url 'scm:git@github.com:DouglasOrr/Persistent.git'
+                   connection 'scm:git@github.com:DouglasOrr/Persistent.git'
+                   developerConnection 'scm:git@github.com:DouglasOrr/Persistent.git'
+               }
+                licenses {
+                   license {
+                       name 'MIT License'
+                       url 'http://opensource.org/licenses/MIT'
+                   }
+               }
+               developers {
+                   developer {
+                       id 'douglasorr'
+                       name 'Douglas Orr'
+                   }
+               }
+            }
+        }
+    }
+}
+
+artifacts {
+    archives jar
+    archives javadocJar
+    archives sourcesJar
 }
 
 repositories {
