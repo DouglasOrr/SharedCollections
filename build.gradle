@@ -3,7 +3,7 @@ apply plugin: 'signing'
 apply plugin: 'maven'
 
 group = "com.dorr.persistent"
-version = '0.1'
+version = '0.1.0'
 ext.source_version = "git rev-parse HEAD".execute().text
 ext.can_sign = project.hasProperty("signing.keyId")
 
@@ -111,3 +111,32 @@ task runMemory(dependsOn: 'testClasses', type: JavaExec, description: "Run the m
     classpath = sourceSets.test.runtimeClasspath
     jvmArgs = ['-javaagent:lib/object-explorer.jar']
 }
+
+task publishDoc(dependsOn: 'javadoc') << {
+    def remote = "git@github.com:DouglasOrr/Persistent.git"
+    def pages = "build/gh-pages"
+    def docs = "doc/${version}"
+    def javadoc = new File("build/docs/javadoc")
+
+    // refresh the pages clone
+    ["rm -rf ${pages}",
+     "git clone --single-branch --branch gh-pages ${remote} ${pages}"].each {
+        it.execute().waitFor()
+    }
+    // copy in, commit, push docs
+    ["rm -rf ${docs}",
+     "cp -r ${javadoc.getAbsolutePath()} ${docs}",
+     "git add --all ${docs}",
+     ["git", "commit", "--message", "Update docs for ${version} (${source_version.substring(0,8)})"],
+     "git push"
+    ].each {
+        def proc = it.execute(null, new File(pages))
+        proc.waitFor()
+        if (proc.exitValue() != 0) {
+            throw new GradleScriptException("\$ ${it} failed with code ${proc.exitValue()}, saying:\n${proc.err.text}", null)
+        }
+    }
+}
+// TODO - generate & publish performance reports
+
+task release(dependsOn: ['uploadSnapshots', 'publishDoc'])
