@@ -32,10 +32,7 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>,
         this(null, null, 0);
     }
     public TrieArray(Collection<T> c) {
-        TrieArray<T> a = empty();
-        for (T element : c) {
-            a = a.append(element);
-        }
+        TrieArray<T> a = TrieArray.<T> empty().appendAll(c);
         mRoot = a.mRoot;
         mEnd = a.mEnd;
         mSize = a.mSize;
@@ -49,7 +46,7 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>,
         return new TrieArray<T>(null, value, 1);
     }
     public static <T> TrieArray<T> of(T... values) {
-        return new TrieArray<T>(Arrays.asList(values));
+        return TrieArray.<T> empty().appendAll(Arrays.asList(values));
     }
 
     // *** AbstractList ***
