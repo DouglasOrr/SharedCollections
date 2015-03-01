@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'signing'
 apply plugin: 'maven'
 
-group = "com.dorr.persistent"
+group = "com.dorr.shared"
 version = '0.1.0'
 ext.source_version = "git rev-parse HEAD".execute().text
 ext.can_sign = project.hasProperty("signing.keyId")
@@ -18,10 +18,10 @@ tasks.withType(JavaCompile) {
 }
 jar {
     manifest {
-        attributes("Specification-Title": "Persistent data structures",
+        attributes("Specification-Title": "Immutable data structures (with structural sharing)",
                    "Specification-Vendor": "Douglas Orr",
                    "Specification-Version": version,
-                   "Implementation-Title": "com.dorr.persistent",
+                   "Implementation-Title": "com.dorr.shared",
                    "Implementation-Version": source_version)
     }
 }
@@ -59,15 +59,15 @@ uploadArchives {
                 }
             }
             pom.project {
-                name 'Persistent'
+                name 'SharedCollections'
                 packaging 'jar'
-                description 'A very small persistent data structures library for use in plain old Java'
-                url 'http://douglasorr.github.io/Persistent/'
+                description 'A very immutable data structures library for use in plain old Java'
+                url 'http://douglasorr.github.io/SharedCollections/'
 
                 scm {
-                    url 'scm:git@github.com:DouglasOrr/Persistent.git'
-                    connection 'scm:git@github.com:DouglasOrr/Persistent.git'
-                    developerConnection 'scm:git@github.com:DouglasOrr/Persistent.git'
+                    url 'scm:git@github.com:DouglasOrr/SharedCollections.git'
+                    connection 'scm:git@github.com:DouglasOrr/SharedCollections.git'
+                    developerConnection 'scm:git@github.com:DouglasOrr/SharedCollections.git'
                 }
                 licenses {
                     license {
@@ -102,18 +102,18 @@ dependencies {
 
 // other tasks
 task runPerformance(dependsOn: 'testClasses', type: JavaExec, description: "Run the performance tests (slow)") {
-    main = 'com.dorr.persistent.Comparisons$Performance'
+    main = 'com.dorr.shared.Comparisons$Performance'
     classpath = sourceSets.test.runtimeClasspath
 }
 
 task runMemory(dependsOn: 'testClasses', type: JavaExec, description: "Run the memory size tests") {
-    main = 'com.dorr.persistent.Comparisons$Memory'
+    main = 'com.dorr.shared.Comparisons$Memory'
     classpath = sourceSets.test.runtimeClasspath
     jvmArgs = ['-javaagent:lib/object-explorer.jar']
 }
 
 task publishDoc(dependsOn: 'javadoc') << {
-    def remote = "git@github.com:DouglasOrr/Persistent.git"
+    def remote = "git@github.com:DouglasOrr/SharedCollections.git"
     def pages = "build/gh-pages"
     def docs = "doc/${version}"
     def javadoc = new File("build/docs/javadoc")

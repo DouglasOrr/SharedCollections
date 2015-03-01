@@ -1,4 +1,4 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -10,9 +10,9 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
 /**
- * A persistent singly-linked list.
+ * A shared singly-linked list.
  */
-public class LinkedList<T> extends AbstractSequentialList<T> implements PersistentList<T>, Externalizable {
+public class LinkedList<T> extends AbstractSequentialList<T> implements SharedList<T>, Externalizable {
     private static final long serialVersionUID = 1432629009835937104L;
 
     // these would all be final, but for Java's horrid readExternal() deserialization
@@ -58,7 +58,7 @@ public class LinkedList<T> extends AbstractSequentialList<T> implements Persiste
         return head;
     }
 
-    // *** PersistentList ***
+    // *** SharedList ***
 
     @Override
     public LinkedList<T> prepend(T head) {

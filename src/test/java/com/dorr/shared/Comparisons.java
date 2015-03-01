@@ -1,4 +1,4 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 import com.google.common.base.Joiner;
 import objectexplorer.Chain;
@@ -14,7 +14,7 @@ import static java.util.Arrays.asList;
 
 public class Comparisons {
     public static final List<MapTester<String, Integer>> TEST_MAPS = asList(
-            new MapTester.PersistentMapTester<String, Integer>(HashTrieMap.<String, Integer>empty()),
+            new MapTester.SharedMapTester<String, Integer>(HashTrieMap.<String, Integer>empty()),
             new MapTester.JavaHashMapTester<String, Integer>(),
             new MapTester.JavaTreeMapTester<String, Integer>(),
             new MapTester.ClojureIPersistentMapTester<String, Integer>(clojure.lang.PersistentHashMap.create()),
@@ -22,7 +22,7 @@ public class Comparisons {
     );
 
     public static final List<ArrayTester<Integer>> TEST_ARRAYS = asList(
-            new ArrayTester.PersistentArrayTester<Integer>(TrieArray.<Integer>empty()),
+            new ArrayTester.SharedArrayTester<Integer>(TrieArray.<Integer>empty()),
             new ArrayTester.JavaArrayListTester<Integer>(),
             new ArrayTester.ClojureVectorTester<Integer>(clojure.lang.PersistentVector.create())
     );

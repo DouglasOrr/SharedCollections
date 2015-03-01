@@ -1,4 +1,4 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -14,11 +14,11 @@ public abstract class ArrayTester<T> extends Tester {
     public abstract void remove(int index);
     public abstract Iterator<T> iterator();
 
-    public static class PersistentArrayTester<T> extends ArrayTester<T> {
-        private final PersistentArray<T> mEmpty;
-        private PersistentArray<T> mArray;
+    public static class SharedArrayTester<T> extends ArrayTester<T> {
+        private final SharedArray<T> mEmpty;
+        private SharedArray<T> mArray;
 
-        public PersistentArrayTester(PersistentArray<T> empty) {
+        public SharedArrayTester(SharedArray<T> empty) {
             mEmpty = empty;
             mArray = mEmpty;
         }
@@ -33,7 +33,7 @@ public abstract class ArrayTester<T> extends Tester {
         }
         @Override
         public void add(int index, T value) {
-            mArray = PersistentArrays.insert(mArray, index, value);
+            mArray = SharedArrays.insert(mArray, index, value);
         }
         @Override
         public void set(int index, T value) {
@@ -45,7 +45,7 @@ public abstract class ArrayTester<T> extends Tester {
         }
         @Override
         public void remove(int index) {
-            mArray = PersistentArrays.remove(mArray, index);
+            mArray = SharedArrays.remove(mArray, index);
         }
         @Override
         public void reset() {

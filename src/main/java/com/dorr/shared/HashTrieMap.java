@@ -1,4 +1,4 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -8,13 +8,13 @@ import java.lang.reflect.Array;
 import java.util.*;
 
 /**
- * An implementation of the persistent hash trie map.
+ * An implementation of the shared hash trie map.
  */
-public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<K,V>, Externalizable {
+public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>, Externalizable {
     private static final long serialVersionUID = -976712368400781259L;
 
     private static class Node {
-        // child :: Node | PersistentMap$Entry | PersistentMap$Entry[]
+        // child :: Node | SimpleMapEntry | SimpleMapEntry[]
         public final Object[] children;
         public final int hasChild;
         private Node(Object[] children, int hasChild) {
@@ -29,7 +29,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
     private static final int HASH_MASK = (1 << HASH_SHIFT) - 1;
 
     // these would all be final, but for Java's horrid readExternal() deserialization
-    // root :: Node | PersistentMap$Entry | PersistentMap$Entry[] | Null
+    // root :: Node | SimpleMapEntry | SimpleMapEntry[] | Null
     private Object mRoot;
     private int mSize;
     // cached implementations
@@ -131,7 +131,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
                 }
                 @Override
                 public void remove() {
-                    throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its' iterator)");
+                    throw new UnsupportedOperationException("remove() called on immutable iterator (you cannot mutate a SharedMap using its' iterator)");
                 }
             };
         }
@@ -167,7 +167,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
         return get(key) != null;
     }
 
-    // *** PersistentMap ***
+    // *** SharedMap ***
 
     @Override
     public int size() {
@@ -518,7 +518,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements PersistentMap<
 
         @Override
         public void remove() {
-            throw new UnsupportedOperationException("remove() called on persistent iterator (you cannot mutate a PersistentMap using its iterator)");
+            throw new UnsupportedOperationException("remove() called on immutable iterator (you cannot mutate a SharedMap using its iterator)");
         }
     }
 

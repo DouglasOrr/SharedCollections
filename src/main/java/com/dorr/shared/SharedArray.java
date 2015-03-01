@@ -1,14 +1,14 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
- * A persistent array that does not support in-place updates,
+ * A shared array that does not support in-place updates,
  * but supports 'copy' updates with structural sharing.
  */
-public interface PersistentArray<T> extends List<T> {
+public interface SharedArray<T> extends List<T> {
     /**
      * Returns a new array with an updated value at <code>index</code>.
      * (The original array is unmodified.)
@@ -16,7 +16,7 @@ public interface PersistentArray<T> extends List<T> {
      * @param value new value to set
      * @return a new array, with <code>index</code> updated to contain <code>value</code>
      */
-    PersistentArray<T> update(int index, T value) throws IndexOutOfBoundsException;
+    SharedArray<T> update(int index, T value) throws IndexOutOfBoundsException;
 
     /**
      * Returns a new array, with <code>value</code> added on to the end.
@@ -26,7 +26,7 @@ public interface PersistentArray<T> extends List<T> {
      * @param value the value at the end of the returned array.
      * @return a new array, with <code>value</code> at the end
      */
-    PersistentArray<T> append(T value);
+    SharedArray<T> append(T value);
 
     /**
      * Returns a new array, with all elements of <code>values</code> added on to the
@@ -35,7 +35,7 @@ public interface PersistentArray<T> extends List<T> {
      * @param values the values at the end of the returned array
      * @return a new array with <code>values</code> at the end
      */
-    PersistentArray<T> appendAll(Collection<T> values);
+    SharedArray<T> appendAll(Collection<T> values);
 
     /**
      * Returns a new array, without the last value.
@@ -44,12 +44,12 @@ public interface PersistentArray<T> extends List<T> {
      * as this can be more efficient.</p>
      * @return a new array, without the last value.
      */
-    PersistentArray<T> remend() throws NoSuchElementException;
+    SharedArray<T> remend() throws NoSuchElementException;
 
     /**
      * Returns a new array containing the first <code>n</code> elements of this array.
      * @param n the number of leading elements to return from this array.
      * @return a new array containing the first <code>n</code> elements
      */
-    PersistentArray<T> take(int n) throws IndexOutOfBoundsException;
+    SharedArray<T> take(int n) throws IndexOutOfBoundsException;
 }

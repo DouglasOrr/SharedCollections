@@ -1,13 +1,13 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 /**
- * Utility methods for working with {@link com.dorr.persistent.PersistentArray} values.
+ * Utility methods for working with {@link SharedArray} values.
  * These algorithms are provided here with an efficiency warning - while all the direct
- * PersistentArray operations are log(N) or better, these methods can have O(N log(N))
+ * SharedArray operations are log(N) or better, these methods can have O(N log(N))
  * worst case computational complexity.
  */
-public final class PersistentArrays {
-    private PersistentArrays() { }
+public final class SharedArrays {
+    private SharedArrays() { }
     /**
      * Returns a new array, with <code>value</code> at <code>index</code>.
      * Elements after <code>index</code> are shifted forward by one place to make room.
@@ -17,7 +17,7 @@ public final class PersistentArrays {
      * @param value value to place at index
      * @return a new array, with <code>value</code> at <code>index</code>
      */
-    public static <T> PersistentArray<T> insert(PersistentArray<T> array, int index, T value) {
+    public static <T> SharedArray<T> insert(SharedArray<T> array, int index, T value) {
         return array.take(index)
                     .append(value)
                     .appendAll(array.subList(index, array.size()));
@@ -31,7 +31,7 @@ public final class PersistentArrays {
      * @param index the location to remove a value
      * @return a new array, with the previous value of <code>index</code> removed.
      */
-    public static <T> PersistentArray<T> remove(PersistentArray<T> array, int index) {
+    public static <T> SharedArray<T> remove(SharedArray<T> array, int index) {
         return array.take(index)
                     .appendAll(array.subList(index + 1, array.size()));
     }

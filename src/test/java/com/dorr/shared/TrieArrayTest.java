@@ -1,4 +1,4 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -37,7 +37,7 @@ public class TrieArrayTest {
         }
     }
 
-    private void checkConsistency(PersistentArray<String> array, List<String> reference) {
+    private void checkConsistency(SharedArray<String> array, List<String> reference) {
         assertThat(array, equalTo(reference));
         assertThat(new ArrayList<String>(array), equalTo(reference));
         assertThat(array.size(), equalTo(reference.size()));
@@ -78,7 +78,7 @@ public class TrieArrayTest {
             out.close();
 
             ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()));
-            assertThat((PersistentArray<String>) in.readObject(), equalTo(reference));
+            assertThat((SharedArray<String>) in.readObject(), equalTo(reference));
             assertThat(in.readInt(), equalTo(0xdeadbeef));
             in.close();
 
@@ -167,7 +167,7 @@ public class TrieArrayTest {
                 for (int i = 0; i <= n; ++i) {
                     List<String> newReference = new ArrayList<String>(reference);
                     newReference.add(i, "foobar");
-                    checkConsistency(PersistentArrays.insert(array, i, "foobar"), newReference);
+                    checkConsistency(SharedArrays.insert(array, i, "foobar"), newReference);
                 }
                 checkConsistency(array, reference);
             }
@@ -182,7 +182,7 @@ public class TrieArrayTest {
                 for (int i = 0; i < n; ++i) {
                     List<String> newReference = new ArrayList<String>(reference);
                     newReference.remove(i);
-                    checkConsistency(PersistentArrays.remove(array, i), newReference);
+                    checkConsistency(SharedArrays.remove(array, i), newReference);
                 }
                 checkConsistency(array, reference);
             }

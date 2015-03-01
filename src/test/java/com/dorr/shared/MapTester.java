@@ -1,4 +1,4 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 import clojure.lang.IPersistentMap;
 import scala.Option;
@@ -14,10 +14,10 @@ public abstract class MapTester<K,V> extends Tester {
     public abstract void put(K key, V value);
     public abstract Iterator<Map.Entry<K,V>> iterator();
 
-    public static class PersistentMapTester<K,V> extends MapTester<K,V> {
-        private final PersistentMap<K,V> mEmpty;
-        private PersistentMap<K,V> mMap;
-        public PersistentMapTester(PersistentMap<K,V> empty) {
+    public static class SharedMapTester<K,V> extends MapTester<K,V> {
+        private final SharedMap<K,V> mEmpty;
+        private SharedMap<K,V> mMap;
+        public SharedMapTester(SharedMap<K, V> empty) {
             mEmpty = empty;
             mMap = empty;
         }

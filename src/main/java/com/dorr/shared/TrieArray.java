@@ -1,4 +1,4 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -7,9 +7,9 @@ import java.io.ObjectOutput;
 import java.util.*;
 
 /**
- * An implementation of the persistent trie array.
+ * An implementation of the shared trie array.
  */
-public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>, Externalizable, RandomAccess {
+public class TrieArray<T> extends AbstractList<T> implements SharedArray<T>, Externalizable, RandomAccess {
     private static final long serialVersionUID = 5254879707958397211L;
     private static final int NBITS = 5;
     private static final int BLOCK_SIZE = (1 << NBITS);
@@ -139,19 +139,19 @@ public class TrieArray<T> extends AbstractList<T> implements PersistentArray<T>,
 
         @Override
         public void remove() {
-            throw new UnsupportedOperationException("remove() called on a persistent iterator (you cannot mutate a TrieArray using its' iterator)");
+            throw new UnsupportedOperationException("remove() called on a immutable iterator (you cannot mutate a TrieArray using its' iterator)");
         }
         @Override
         public void set(T t) {
-            throw new UnsupportedOperationException("set() called on a persistent iterator (you cannot mutate a TrieArray using its' iterator)");
+            throw new UnsupportedOperationException("set() called on a immutable iterator (you cannot mutate a TrieArray using its' iterator)");
         }
         @Override
         public void add(T t) {
-            throw new UnsupportedOperationException("add() called on a persistent iterator (you cannot mutate a TrieArray using its' iterator)");
+            throw new UnsupportedOperationException("add() called on a immutable iterator (you cannot mutate a TrieArray using its' iterator)");
         }
     }
 
-    // *** PersistentArray ***
+    // *** SharedArray ***
 
     private static int rootSize(int size) {
         return size <= 1 ? 0 : size - (1 + (size - 1) % BLOCK_SIZE);

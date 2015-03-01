@@ -1,4 +1,4 @@
-package com.dorr.persistent;
+package com.dorr.shared;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -55,7 +55,7 @@ public class LinkedListTest {
         assertThat(singleton, contains(42));
         assertThat(tri,       contains(10, 20, 42));
 
-        // Check using PersistentList's contract
+        // Check using SharedList's contract
         assertThat(singleton.head(), is(42));
         assertThat(singleton.tail(), sameInstance(LinkedList.<Integer>empty()));
         assertThat(tri.head(), is(10));
