@@ -1,4 +1,4 @@
-# com.dorr.shared
+# dorr.shared
 [![Build Status](https://travis-ci.org/DouglasOrr/SharedCollections.svg?branch=master)](https://travis-ci.org/DouglasOrr/SharedCollections)
 
 A very small immutable (structural sharing) data structures library (based on Clojure & Scala's associative and sequential data structures), for use in plain old Java.

@@ -1,4 +1,4 @@
-package com.dorr.shared;
+package dorr.shared;
 
 import java.util.ArrayList;
 import java.util.Iterator;

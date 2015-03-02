@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'signing'
 apply plugin: 'maven'
 
-group = "com.dorr.shared"
+group = "dorr.shared"
 version = '0.1.0'
 ext.source_version = "git rev-parse HEAD".execute().text
 ext.can_sign = project.hasProperty("signing.keyId")
@@ -21,7 +21,7 @@ jar {
         attributes("Specification-Title": "Immutable data structures (with structural sharing)",
                    "Specification-Vendor": "Douglas Orr",
                    "Specification-Version": version,
-                   "Implementation-Title": "com.dorr.shared",
+                   "Implementation-Title": "dorr.shared",
                    "Implementation-Version": source_version)
     }
 }
@@ -102,12 +102,12 @@ dependencies {
 
 // other tasks
 task runPerformance(dependsOn: 'testClasses', type: JavaExec, description: "Run the performance tests (slow)") {
-    main = 'com.dorr.shared.Comparisons$Performance'
+    main = 'dorr.shared.Comparisons$Performance'
     classpath = sourceSets.test.runtimeClasspath
 }
 
 task runMemory(dependsOn: 'testClasses', type: JavaExec, description: "Run the memory size tests") {
-    main = 'com.dorr.shared.Comparisons$Memory'
+    main = 'dorr.shared.Comparisons$Memory'
     classpath = sourceSets.test.runtimeClasspath
     jvmArgs = ['-javaagent:lib/object-explorer.jar']
 }

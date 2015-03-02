@@ -1,4 +1,4 @@
-package com.dorr.shared;
+package dorr.shared;
 
 import org.junit.Assert;
 import org.junit.Test;

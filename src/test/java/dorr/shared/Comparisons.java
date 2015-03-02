@@ -1,4 +1,4 @@
-package com.dorr.shared;
+package dorr.shared;
 
 import com.google.common.base.Joiner;
 import objectexplorer.Chain;

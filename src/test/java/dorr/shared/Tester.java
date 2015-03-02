@@ -1,4 +1,4 @@
-package com.dorr.shared;
+package dorr.shared;
 
 public abstract class Tester {
     public abstract void reset();

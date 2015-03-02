@@ -1,4 +1,4 @@
-package com.dorr.shared;
+package dorr.shared;
 
 /**
  * Utility methods for working with {@link SharedArray} values.
