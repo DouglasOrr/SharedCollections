@@ -1,4 +1,4 @@
-package dorr.shared;
+package com.github.douglasorr;
 
 import java.util.List;
 import java.util.NoSuchElementException;

@@ -38,36 +38,36 @@
  * So it is very easy to get started with shared collections - you just need to get used to the
  * shared update operation, and replace your mutable collections with the equivalent shared
  * ones (we provide a table below to help you get started). The way to read this is "if I would have
- * used <code>java.util.X</code>, I'll start using <code>dorr.shared.Y</code>" (these are only
+ * used <code>java.util.X</code>, I'll start using <code>com.github.douglasorr.shared.Y</code>" (these are only
  * rough guidelines).</p>
  *
  * <table>
  *     <thead>
  *         <tr>
  *             <th>Mutable collection (<code>java.util.?</code>)</th>
- *             <th>Shared collection (<code>dorr.shared.?</code>)</th>
+ *             <th>Shared collection (<code>com.github.douglasorr.shared.?</code>)</th>
  *             <th>Fast operations</th>
  *         </tr>
  *     </thead>
  *     <tbody>
  *         <tr>
  *             <td>{@link java.util.ArrayList}</td>
- *             <td>{@link dorr.shared.TrieArray}</td>
+ *             <td>{@link com.github.douglasorr.TrieArray}</td>
  *             <td>random access; random update; insertion at back</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.LinkedList}</td>
- *             <td>{@link dorr.shared.LinkedList}</td>
+ *             <td>{@link com.github.douglasorr.LinkedList}</td>
  *             <td>query, insertion or removal at front</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.HashSet}, {@link java.util.TreeSet}</td>
- *             <td>{@link dorr.shared.HashTrieSet}</td>
+ *             <td>{@link com.github.douglasorr.HashTrieSet}</td>
  *             <td>unique insert; contains</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.HashMap}, {@link java.util.TreeMap}</td>
- *             <td>{@link dorr.shared.HashTrieMap}</td>
+ *             <td>{@link com.github.douglasorr.HashTrieMap}</td>
  *             <td>unique insert; lookup</td>
  *         </tr>
  *     </tbody>
@@ -87,39 +87,39 @@
  *     <tbody>
  *         <tr>
  *             <td>{@link java.util.List#add(java.lang.Object)}</td>
- *             <td>{@link dorr.shared.SharedArray#append(java.lang.Object)}</td>
+ *             <td>{@link com.github.douglasorr.SharedArray#append(java.lang.Object)}</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.List#set(int, java.lang.Object)}</td>
- *             <td>{@link dorr.shared.SharedArray#update(int, java.lang.Object)}</td>
+ *             <td>{@link com.github.douglasorr.SharedArray#update(int, java.lang.Object)}</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.List#remove(int)}</td>
- *             <td>{@link dorr.shared.SharedArray#remend()}, {@link dorr.shared.SharedArrays#remove(dorr.shared.SharedArray, int)}</td>
+ *             <td>{@link com.github.douglasorr.SharedArray#remend()}, {@link com.github.douglasorr.SharedArrays#remove(com.github.douglasorr.SharedArray, int)}</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.LinkedList#addFirst(java.lang.Object)}</td>
- *             <td>{@link dorr.shared.SharedList#prepend(java.lang.Object)}</td>
+ *             <td>{@link com.github.douglasorr.SharedList#prepend(java.lang.Object)}</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.LinkedList#getFirst()}</td>
- *             <td>{@link dorr.shared.SharedList#head()}</td>
+ *             <td>{@link com.github.douglasorr.SharedList#head()}</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.Set#add(java.lang.Object)}</td>
- *             <td>{@link dorr.shared.SharedSet#with(java.lang.Object)}</td>
+ *             <td>{@link com.github.douglasorr.SharedSet#with(java.lang.Object)}</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.Set#remove(java.lang.Object)}</td>
- *             <td>{@link dorr.shared.SharedSet#without(java.lang.Object)}</td>
+ *             <td>{@link com.github.douglasorr.SharedSet#without(java.lang.Object)}</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.Map#put(java.lang.Object, java.lang.Object)}</td>
- *             <td>{@link dorr.shared.SharedMap#with(java.lang.Object, java.lang.Object)}</td>
+ *             <td>{@link com.github.douglasorr.SharedMap#with(java.lang.Object, java.lang.Object)}</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.Map#remove(java.lang.Object)}</td>
- *             <td>{@link dorr.shared.SharedMap#without(java.lang.Object)}</td>
+ *             <td>{@link com.github.douglasorr.SharedMap#without(java.lang.Object)}</td>
  *         </tr>
  *     </tbody>
  * </table>
@@ -143,14 +143,14 @@
  * collection.</p>
  * <ul>
  * <li>For example, I am writing an algorithm that requires a stack to run, but once finished the stack is garbage. I have
- * the choice between the mutable {@link java.util.ArrayDeque} and the shared {@link dorr.shared.TrieArray}.
+ * the choice between the mutable {@link java.util.ArrayDeque} and the shared {@link com.github.douglasorr.TrieArray}.
  * In this case, I would choose the mutable {@link java.util.ArrayDeque}, as it has higher performance, and the
  * no-modification guarantee doesn't really make my program any simpler or safer.</li>
  *
  * <li>Now I am writing an <code>Event</code> type for a UI framework and must provide within the payload a set of objects.
- * Again, I can choose between a mutable {@link java.util.HashSet} and a shared {@link dorr.shared.HashTrieSet}.
+ * Again, I can choose between a mutable {@link java.util.HashSet} and a shared {@link com.github.douglasorr.HashTrieSet}.
  * This time, the scope of the collection is potentially large, and certainly complex (it can change at runtime as event
- * handlers are added), so I would prefer the shared {@link dorr.shared.HashTrieSet}.</li>
+ * handlers are added), so I would prefer the shared {@link com.github.douglasorr.HashTrieSet}.</li>
  * </ul>
  * <p>Often your decisions won't be as obvious as this - but as you gain confidence in using shared collections, I
  * suggest that most collections that are exposed by a method or field on a class or interface should provide the
@@ -167,4 +167,4 @@
  * conversion errors), and factory methods <code>singleton()</code> to create a single-element collection and <code>of(...)</code>
  * which creates a collection from a flat array.</p>
  */
-package dorr.shared;
+package com.github.douglasorr;

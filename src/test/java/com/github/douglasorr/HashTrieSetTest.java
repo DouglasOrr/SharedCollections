@@ -1,4 +1,4 @@
-package dorr.shared;
+package com.github.douglasorr;
 
 import com.google.common.collect.ImmutableSet;
 import junit.framework.TestCase;

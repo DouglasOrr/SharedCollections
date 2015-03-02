@@ -1,4 +1,4 @@
-package dorr.shared;
+package com.github.douglasorr;
 
 import java.io.Externalizable;
 import java.io.IOException;

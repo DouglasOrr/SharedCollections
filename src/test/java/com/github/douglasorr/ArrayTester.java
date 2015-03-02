@@ -1,4 +1,4 @@
-package dorr.shared;
+package com.github.douglasorr;
 
 import java.util.ArrayList;
 import java.util.Iterator;

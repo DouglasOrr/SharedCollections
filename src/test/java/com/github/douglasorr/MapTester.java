@@ -1,4 +1,4 @@
-package dorr.shared;
+package com.github.douglasorr;
 
 import clojure.lang.IPersistentMap;
 import scala.Option;

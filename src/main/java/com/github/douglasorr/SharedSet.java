@@ -1,4 +1,4 @@
-package dorr.shared;
+package com.github.douglasorr;
 
 import java.util.Set;
 

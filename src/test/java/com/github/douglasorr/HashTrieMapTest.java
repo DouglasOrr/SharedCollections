@@ -1,4 +1,4 @@
-package dorr.shared;
+package com.github.douglasorr;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.Hashing;
