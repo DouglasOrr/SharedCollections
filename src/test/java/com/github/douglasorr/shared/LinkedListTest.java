@@ -1,4 +1,4 @@
-package com.github.douglasorr;
+package com.github.douglasorr.shared;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;

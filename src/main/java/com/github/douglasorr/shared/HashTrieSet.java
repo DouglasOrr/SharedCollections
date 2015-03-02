@@ -1,4 +1,4 @@
-package com.github.douglasorr;
+package com.github.douglasorr.shared;
 
 import java.io.Externalizable;
 import java.io.IOException;

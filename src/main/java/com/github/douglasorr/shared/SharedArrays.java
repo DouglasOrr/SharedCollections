@@ -1,4 +1,4 @@
-package com.github.douglasorr;
+package com.github.douglasorr.shared;
 
 /**
  * Utility methods for working with {@link SharedArray} values.

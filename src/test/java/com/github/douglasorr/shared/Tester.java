@@ -1,4 +1,4 @@
-package com.github.douglasorr;
+package com.github.douglasorr.shared;
 
 public abstract class Tester {
     public abstract void reset();

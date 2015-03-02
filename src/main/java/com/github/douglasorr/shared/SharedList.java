@@ -1,4 +1,4 @@
-package com.github.douglasorr;
+package com.github.douglasorr.shared;
 
 import java.util.List;
 import java.util.NoSuchElementException;
