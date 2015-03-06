@@ -14,7 +14,7 @@ compileJava {
 }
 tasks.withType(JavaCompile) {
     // apply this to main & test compilation
-    options.compilerArgs << "-Xlint:unchecked"
+    //options.compilerArgs << "-Xlint:unchecked"
 }
 jar {
     manifest {
@@ -95,48 +95,62 @@ dependencies {
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile 'org.clojure:clojure:1.6.0'
     testCompile 'org.scala-lang:scala-library:2.11.4'
-
     testCompile 'com.google.guava:guava:18.0'
+    testCompile 'com.google.code.gson:gson:2.3.1'
+    testCompile 'commons-cli:commons-cli:1.2'
     testCompile files('lib/object-explorer.jar')
 }
 
-// other tasks
-task runPerformance(dependsOn: 'testClasses', type: JavaExec, description: "Run the performance tests (slow)") {
-    main = 'com.github.douglasorr.shared.Comparisons$Performance'
-    classpath = sourceSets.test.runtimeClasspath
-}
+ext.profileCsv = new File("build/reports/profile.csv")
+ext.profileJson = new File("build/reports/profile.json")
 
-task runMemory(dependsOn: 'testClasses', type: JavaExec, description: "Run the memory size tests") {
-    main = 'com.github.douglasorr.shared.Comparisons$Memory'
+// other tasks
+task runProfile(dependsOn: 'testClasses', type: JavaExec, description: "Run the performance & memory tests (slow)") {
+    main = 'com.github.douglasorr.shared.Profile'
     classpath = sourceSets.test.runtimeClasspath
     jvmArgs = ['-javaagent:lib/object-explorer.jar']
+    args = ["--csv", profileCsv, "--json", profileJson]
+    outputs.files profileCsv, profileJson
 }
 
-task publishDoc(dependsOn: 'javadoc') << {
-    def remote = "git@github.com:DouglasOrr/SharedCollections.git"
-    def pages = "build/gh-pages"
-    def docs = "doc/${version}"
-    def javadoc = new File("build/docs/javadoc")
+class UpdatePages extends DefaultTask {
+    String destDir;
 
-    // refresh the pages clone
-    ["rm -rf ${pages}",
-     "git clone --single-branch --branch gh-pages ${remote} ${pages}"].each {
-        it.execute().waitFor()
-    }
-    // copy in, commit, push docs
-    ["rm -rf ${docs}",
-     "cp -r ${javadoc.getAbsolutePath()} ${docs}",
-     "git add --all ${docs}",
-     ["git", "commit", "--message", "Update docs for ${version} (${source_version.substring(0,8)})"],
-     "git push"
-    ].each {
-        def proc = it.execute(null, new File(pages))
-        proc.waitFor()
-        if (proc.exitValue() != 0) {
-            throw new GradleScriptException("\$ ${it} failed with code ${proc.exitValue()}, saying:\n${proc.err.text}", null)
+    @TaskAction
+    def update() {
+        def remote = "git@github.com:DouglasOrr/SharedCollections.git"
+        def pages = "build/gh-pages"
+        def sources = inputs.files.collect {it -> it.getAbsolutePath()}.join(" ")
+
+        // refresh the pages clone
+        "rm -rf ${pages}".execute().waitFor()
+        "git clone --single-branch --branch gh-pages ${remote} ${pages}".execute().waitFor()
+
+        // copy in sources, commit, push destDir
+        ["rm -rf ${destDir}",
+         "mkdir -p ${destDir}",
+         "cp -r ${sources} ${destDir}",
+         "git add --all ${destDir}",
+         ["git", "commit", "--message", "Update ${destDir} for ${project.version} (${project.source_version.substring(0,8)})"],
+         "git push"
+        ].each {
+            def proc = it.execute(null, new File(pages))
+            proc.waitFor()
+            if (proc.exitValue() != 0) {
+                throw new GradleScriptException("\$ ${it} failed with code ${proc.exitValue()}, saying:\n${proc.err.text}", null)
+            }
         }
     }
 }
-// TODO - generate & publish performance reports
 
-task release(dependsOn: ['uploadSnapshots', 'publishDoc'])
+task publishDoc(type: UpdatePages) {
+    inputs.file javadoc
+    destDir = "doc/${version}"
+}
+
+task publishProfile(type: UpdatePages) {
+    inputs.file runProfile
+    destDir = "profile/${version}"
+}
+
+task release(dependsOn: ['uploadSnapshots', 'publishDoc', 'publishProfile'])
