@@ -8,10 +8,10 @@ import java.util.Set;
  */
 public interface SharedSet<T> extends Set<T> {
     /**
-     * Return a new map, with the given key->value mapping.
+     * Return a new map, with the given key-&gt;value mapping.
      * If there is already a value for the given key, it is replaced.
      * @param value the value to add, or replace
-     * @return a new map with the key->value mapping (the existing map is unchanged),
+     * @return a new map with the key-&gt;value mapping (the existing map is unchanged),
      * (so <code>map.get(key) == value</code>).
      */
     SharedSet<T> with(T value);

@@ -84,7 +84,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>
      * @param key the first key
      * @param value the first values
      * @param keyValues an even number of keys (type K), and values (type V), in which
-     *                  later mappings will overwrite earlier ones
+     * later mappings will overwrite earlier ones
      * @return a map containing all of the key-value mappings
      */
     public static <K,V> HashTrieMap<K,V> of(K key, V value, Object... keyValues) {

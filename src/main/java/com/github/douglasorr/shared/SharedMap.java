@@ -8,11 +8,11 @@ import java.util.Map;
  */
 public interface SharedMap<K,V> extends Map<K, V> {
     /**
-     * Return a new map, with the given key->value mapping.
+     * Return a new map, with the given key-&gt;value mapping.
      * If there is already a value for the given key, it is replaced.
      * @param key the key to insert
      * @param value the value to add, or replace
-     * @return a new map with the key->value mapping (the existing map is unchanged),
+     * @return a new map with the key-&gt;value mapping (the existing map is unchanged),
      * (so <code>map.get(key) == value</code>).
      */
     SharedMap<K, V> with(K key, V value);

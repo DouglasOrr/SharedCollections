@@ -5,8 +5,13 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
- * A shared array that does not support in-place updates,
- * but supports 'copy' updates with structural sharing.
+ * An array that supports shared updates in place of mutable ones.
+ * <p>Best suited to sequential containers where random reads and insertion
+ * at the end is required.</p>
+ * <p>Support (small) O(log(N)) insertion at end, updates, and indexing,
+ * as well as an efficient operation for selecting a prefix sub-list.</p>
+ * @see com.github.douglasorr.shared.SharedArrays for some less efficient,
+ * but potentially useful operations, based on this API.
  */
 public interface SharedArray<T> extends List<T> {
     /**

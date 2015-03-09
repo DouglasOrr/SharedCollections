@@ -2,7 +2,7 @@
  * A small collection of <em>immutable</em> data structures for use in plain old Java code
  * (an immutable array, hash map, hash set and linked list, providing structural sharing).
  *
- * <p>If you're familiar with functional JVM languages such as Clojure & Scala, this is an
+ * <p>If you're familiar with functional JVM languages such as Clojure &amp; Scala, this is an
  * implementation of some of the standard collections in those languages, if not, don't worry,
  * these collections just provide a different sort of update operation - the <em>shared
  * update</em> (instead of the <em>mutable update</em>).</p>
@@ -12,17 +12,17 @@
  * it returns a new collection with the update applied (the original collection is never
  * modified).</p>
  * <p>The obvious question is 'why?', to which I shall mainly just say - try it out, and see for
- * yourself. But to motivate you to try this, I'll just claim that it provides this guarantee
- * (that any reference to a shared collection I have will never be modified, never have to
- * acquire a lock, and never throw a <code>ConcurrentModificationException</code>) that is very
- * helpful to make programs that are simpler, more likely to be correct and more easily adapted
- * to support concurrency.</p>
+ * yourself. But to motivate you to try this, I'll just observe that it provides an additional
+ * guarantee: <em>any reference to a shared collection I have will never be modified, never have to
+ * acquire a lock, and never throw a <code>ConcurrentModificationException</code></em>. I consider
+ * this guarantee to be a very helpful tool to write programs that are simpler, more likely to
+ * be correct and more easily adapted to support concurrency.</p>
  *
  * <h2>Usage</h2>
  * <p>Each collection implements the relevant immutable Java collection, and adds just
  * a few methods needed to provide the new shared update methods.
-* A shared update method is just a method that returns a new collection with
- * some modification (don't worry, they do so without copying the whole collection.)
+ * A shared update method is just a method that returns a new collection with
+ * some modification (importantly, they do so without copying the whole collection.)
  * For example, with a Java mutable <code>Set</code>, you might write:</p>
  * <pre>{@code Set<String> s = new HashSet<>();
  * s.add("one");
@@ -41,7 +41,7 @@
  * used <code>java.util.X</code>, I'll start using <code>com.github.douglasorr.shared.Y</code>" (these are only
  * rough guidelines).</p>
  *
- * <table>
+ * <table summary="Equivalent mutable and shared collections">
  *     <thead>
  *         <tr>
  *             <th>Mutable collection (<code>java.util.?</code>)</th>
@@ -77,7 +77,7 @@
  * implements the appropriate Java interface for a read-only collection (all the mutating operations throw
  * a <code>UnsupportedOperationException</code>), and are replaced by equivalent shared update operations
  * as shown below.</p>
- * <table>
+ * <table summary="Equivalent mutable and shared operations">
  *     <thead>
  *         <tr>
  *             <th>Mutable method</th>
@@ -95,7 +95,8 @@
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.List#remove(int)}</td>
- *             <td>{@link com.github.douglasorr.shared.SharedArray#remend()}, {@link com.github.douglasorr.shared.SharedArrays#remove(com.github.douglasorr.shared.SharedArray, int)}</td>
+ *             <td>{@link com.github.douglasorr.shared.SharedArray#remend()},
+ *             {@link com.github.douglasorr.shared.SharedArrays#remove(com.github.douglasorr.shared.SharedArray, int)}</td>
  *         </tr>
  *         <tr>
  *             <td>{@link java.util.LinkedList#addFirst(java.lang.Object)}</td>
@@ -138,7 +139,7 @@
  * the concurrency is limited by the difficulties of correctly synchronizing data access).</p>
  *
  * <p>Because of this tradeoff of safety against performance, I would generally use a mutable collection where the
- * scope of the collection is very limited & simple (e.g. within a single method). When the scope of the collection is
+ * scope of the collection is very limited &amp; simple (e.g. within a single method). When the scope of the collection is
  * large or complex (e.g. returned by an interface method), I would prefer the no-modification guarantee of a shared
  * collection.</p>
  * <ul>
