@@ -3,23 +3,25 @@ package com.github.douglasorr.shared;
 import java.util.Set;
 
 /**
- * A shared set that does not support in-place updates,
- * but supports 'copy' updates with structural sharing.
+ * A set that supports shared updates in place of mutable ones.
+ * Apart from this, it behaves as a normal Java immutable Set.
+ * <p>Instead of using <code>Set.add</code>, use {@link #with(Object)}, and
+ * instead of using <code>Set.remove</code>, use {@link #without(Object)}.</p>
  */
 public interface SharedSet<T> extends Set<T> {
     /**
-     * Return a new map, with the given key-&gt;value mapping.
-     * If there is already a value for the given key, it is replaced.
-     * @param value the value to add, or replace
-     * @return a new map with the key-&gt;value mapping (the existing map is unchanged),
-     * (so <code>map.get(key) == value</code>).
+     * Return a new set, with the given value present.
+     * @param value the value to add
+     * @return a new set with the value present (the original set is unchanged),
+     * so <code>set.contains(key) == true</code>.
      */
     SharedSet<T> with(T value);
 
     /**
-     * Return a new set, without the given key.
+     * Return a new set, without the given value.
      * @param value the value to remove
-     * @return a new set without the given key (so <code>!set.contains(key)</code>)
+     * @return a new set without the given value (the original set is unchanged),
+     * so <code>set.contains(key) == false</code>.
      */
     SharedSet<T> without(T value);
 }

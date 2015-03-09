@@ -7,7 +7,9 @@ import java.io.ObjectOutput;
 import java.util.*;
 
 /**
- * An implementation of the shared trie array.
+ * The basic trie-based implementation of {@link com.github.douglasorr.shared.SharedArray}.
+ * <p>Supports (small) O(log(N)) insertion at end ({@link #append}), update ({@link #update(int, Object)}),
+ * and indexing ({@link #get(int)}), and {@link #take(int)}.</p>
  */
 public class TrieArray<T> extends AbstractList<T> implements SharedArray<T>, Externalizable, RandomAccess {
     private static final long serialVersionUID = 5254879707958397211L;

@@ -6,12 +6,16 @@ import java.util.NoSuchElementException;
 
 /**
  * An array that supports shared updates in place of mutable ones.
+ * Apart from this, it behaves as a normal Java immutable List.
+ * <p>Instead of using <code>List.add</code>, use {@link #append(Object)},
+ * instead of using <code>List.remove(n-1)</code>, use {@link #remend()},
+ * and instead of using <code>List.set</code>, use {@link #update(int, Object)}.</p>
  * <p>Best suited to sequential containers where random reads and insertion
- * at the end is required.</p>
- * <p>Support (small) O(log(N)) insertion at end, updates, and indexing,
+ * at the end is required.
+ * Implementations offer efficient insertion at end, updates, and indexing,
  * as well as an efficient operation for selecting a prefix sub-list.</p>
- * @see com.github.douglasorr.shared.SharedArrays for some less efficient,
- * but potentially useful operations, based on this API.
+ * <p>See {@link com.github.douglasorr.shared.SharedArrays} for some less efficient,
+ * but potentially useful operations, based on this API.</p>
  */
 public interface SharedArray<T> extends List<T> {
     /**

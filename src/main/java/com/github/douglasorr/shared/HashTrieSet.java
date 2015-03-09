@@ -10,7 +10,8 @@ import java.util.Collection;
 import java.util.Iterator;
 
 /**
- * An implementation of the shared hash trie set, based on the HashTrieMap.
+ * An implementation of the shared hash trie set, based on
+ * a {@link com.github.douglasorr.shared.HashTrieMap}.
  */
 public class HashTrieSet<T> extends AbstractSet<T> implements SharedSet<T>, Externalizable {
     private static final long serialVersionUID = 1046994592038807120L;

@@ -2,9 +2,9 @@ package com.github.douglasorr.shared;
 
 /**
  * Utility methods for working with {@link SharedArray} values.
- * These algorithms are provided here with an efficiency warning - while all the direct
+ * <p>These algorithms are provided here with an efficiency warning - while all the direct
  * SharedArray operations are log(N) or better, these methods can have O(N log(N))
- * worst case computational complexity.
+ * worst case computational complexity.</p>
  */
 public final class SharedArrays {
     private SharedArrays() { }

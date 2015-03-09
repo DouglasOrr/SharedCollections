@@ -11,6 +11,12 @@ import java.util.NoSuchElementException;
 
 /**
  * A shared singly-linked list.
+ * <p>Note that due to the singly linked structure, this list does not support
+ * iteration in reverse order via a <code>listIterator</code>.</p>
+ * <p>Like any linked list, indexing can <code>O(n)</code>, so prefer this class
+ * only if most operations are at the beginning of the list (otherwise consider
+ * a {@link com.github.douglasorr.shared.TrieArray}, which provides efficient
+ * random access).</p>
  */
 public class LinkedList<T> extends AbstractSequentialList<T> implements SharedList<T>, Externalizable {
     private static final long serialVersionUID = 1432629009835937104L;

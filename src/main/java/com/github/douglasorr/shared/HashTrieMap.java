@@ -9,6 +9,12 @@ import java.util.*;
 
 /**
  * An implementation of the shared hash trie map.
+ * <p>As for most hash maps, a key must not change its' hash code while
+ * present in the map (this will result in the key becoming unreachable,
+ * and may not be detected by the implementation).</p>
+ * <p>The standard map operations, implemented by {@link #get(Object)},
+ * {@link #with(Object, Object)} and {@link #without(Object)} all take
+ * O(log(n)) time, and the map itself consumes O(n) memory.</p>
  */
 public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>, Externalizable {
     private static final long serialVersionUID = -976712368400781259L;
@@ -73,19 +79,18 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>
     public static <K,V> HashTrieMap<K,V> singleton(K key, V value) {
         return new HashTrieMap<K,V>(new SimpleImmutableEntry<K,V>(key, value), 1);
     }
-
     public static <K,V> HashTrieMap<K,V> of() {
         return EMPTY;
     }
     /**
-     * Create a map containing the given key-value pairs.
+     * Create a map containing the given key-&gt;value pairs.
      * <p>For example:</p>
      * <code>HashTrieMap.of("one", 1, "two", 2, "three", 3);</code>
      * @param key the first key
      * @param value the first values
      * @param keyValues an even number of keys (type K), and values (type V), in which
      * later mappings will overwrite earlier ones
-     * @return a map containing all of the key-value mappings
+     * @return a map containing all of the key-&gt;value mappings
      */
     public static <K,V> HashTrieMap<K,V> of(K key, V value, Object... keyValues) {
         if (keyValues.length % 2 != 0) {
