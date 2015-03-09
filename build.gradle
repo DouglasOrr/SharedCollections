@@ -143,14 +143,17 @@ class UpdatePages extends DefaultTask {
     }
 }
 
-task publishDoc(type: UpdatePages) {
+task publishDoc(type: UpdatePages, description: "Publishes javadoc to gh-pages") {
     inputs.file javadoc
     destDir = "doc/${version}"
 }
 
-task publishProfile(type: UpdatePages) {
+task publishProfile(type: UpdatePages, description: "Publishes profiling report to gh-pages") {
     inputs.file runProfile
     destDir = "profile/${version}"
 }
 
-task release(dependsOn: ['uploadSnapshots', 'publishDoc', 'publishProfile'])
+task release(dependsOn: ['uploadArchives', 'publishDoc', 'publishProfile'],
+             description: "Runs all release tasks for the current version") << {
+  "git push origin HEAD:refs/tags/${version}".execute().waitFor()
+}
