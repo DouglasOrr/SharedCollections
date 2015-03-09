@@ -30,8 +30,8 @@ javadoc {
 }
 
 task sourcesJar(type: Jar) {
-    from sourceSets.main.allSource
     classifier = 'sources'
+    from sourceSets.main.allSource
 }
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
@@ -40,9 +40,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 
 // signing & publishing
 artifacts {
-    archives jar
-    archives javadocJar
-    archives sourcesJar
+    archives jar, javadocJar, sourcesJar
 }
 signing {
     required { can_sign }
@@ -58,10 +56,11 @@ uploadArchives {
                     authentication(userName: "$sonatypeUsername", password: "$sonatypePassword")
                 }
             }
+            pom.artifactId = "shared"
             pom.project {
                 name 'SharedCollections'
                 packaging 'jar'
-                description 'A very immutable data structures library for use in plain old Java'
+                description 'An immutable data structures library for use in plain old Java'
                 url 'http://douglasorr.github.io/SharedCollections/'
 
                 scm {
@@ -155,5 +154,5 @@ task publishProfile(type: UpdatePages, description: "Publishes profiling report 
 
 task release(dependsOn: ['uploadArchives', 'publishDoc', 'publishProfile'],
              description: "Runs all release tasks for the current version") << {
-  "git push origin HEAD:refs/tags/${version}".execute().waitFor()
+    "git push origin HEAD:refs/tags/${version}".execute().waitFor()
 }

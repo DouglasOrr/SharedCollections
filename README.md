@@ -25,6 +25,8 @@ Currently ([@DouglasOrr](https://github.com/DouglasOrr)) has the signing keys, w
  - we use [semantic versioning](http://semver.org/) - `MAJOR.MINOR.PATCH`, make sure the version number obeys these rules before releasing!
  - to release the current version, run `./gradlew release`
  - increment the version number in `build.gradle` as required
+ - log into the [Sonatype OSS console](https://oss.sonatype.org/#welcome), select _Staging Repositories_,
+ find the uploaded staging repository, hit "Close", then (as long as that is successful), "Release"
 
 ## Background
 
