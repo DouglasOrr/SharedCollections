@@ -57,7 +57,7 @@ public class LinkedListTest {
 
         // Check using SharedList's contract
         assertThat(singleton.head(), is(42));
-        assertThat(singleton.tail(), sameInstance(LinkedList.<Integer>empty()));
+        assertThat(singleton.tail(), sameInstance(LinkedList.<Integer> empty()));
         assertThat(tri.head(), is(10));
         assertThat(tri.tail().head(), is(20));
         assertThat("structural sharing", tri.tail().tail(), sameInstance(singleton));

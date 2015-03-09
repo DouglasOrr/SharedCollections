@@ -12,9 +12,8 @@ import java.io.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.*;
 
-import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 
 public class HashTrieMapTest extends TestCase {
 
@@ -36,7 +35,7 @@ public class HashTrieMapTest extends TestCase {
         }
     }
 
-    // basic use
+    // *** Basic use ***
 
     public void testWith() {
         HashTrieMap<String, Integer> empty = HashTrieMap.empty();
@@ -59,13 +58,57 @@ public class HashTrieMapTest extends TestCase {
     }
 
     public void testIterate() {
-        HashTrieMap<String, Integer> m = HashTrieMap.of("one", 1, "two", 2, "three", 3);
-
-        // this will do entrySet iteration internally
-        assertThat(new HashMap<String, Integer>(m), CoreMatchers.<Map<String, Integer>> equalTo(ImmutableMap.of("one", 1, "two", 2, "three", 3)));
+        // copying into a HashMap will do entrySet iteration internally
+        assertThat(new HashMap<String, Integer>(HashTrieMap.of("one", 1, "two", 2, "three", 3)),
+                CoreMatchers.<Map<String, Integer>> equalTo(ImmutableMap.of("one", 1, "two", 2, "three", 3)));
     }
 
-    // special cases
+    // *** Construction ***
+
+    public void testEmpty() {
+        for (HashTrieMap<Object,Object> empty : Arrays.asList(
+                HashTrieMap.EMPTY,
+                HashTrieMap.empty(),
+                HashTrieMap.of(),
+                new HashTrieMap<Object, Object>(),
+                new HashTrieMap<Object, Object>(Collections.emptyMap()),
+                new HashTrieMap<Object, Object>(new HashMap<Object, Object>()),
+                new HashTrieMap<Object, Object>(HashTrieMap.EMPTY)
+        )) {
+            assertThat(empty.size(), is(0));
+            assertThat(empty.isEmpty(), is(true));
+            assertThat(empty.get("foo"), nullValue());
+            assertThat(empty.without("foo"), sameInstance(empty));
+            assertThat(empty.toString(), is("{}"));
+            assertThat(empty, equalTo(Collections.emptyMap()));
+            assertThat(empty.entrySet().iterator().hasNext(), is(false));
+            assertThat(empty.keySet().iterator().hasNext(), is(false));
+            assertThat(empty.values().iterator().hasNext(), is(false));
+        }
+    }
+
+    public void testSingleton() {
+        HashTrieMap<String, Integer> m = HashTrieMap.singleton("meaning", 42);
+        assertThat(m.size(), is(1));
+        assertThat(m.get("meaning"), is(42));
+        assertThat(m.get("everything"), equalTo(null));
+        assertThat(m.get(1), equalTo(null));
+    }
+
+    public void testOf() {
+        HashTrieMap<String, Integer> m = HashTrieMap.of("one", 1, "two", 2, "three", 3);
+        assertThat(m.size(), is(3));
+        assertThat(m.get("one"), is(1));
+        assertThat(m.get("two"), is(2));
+        assertThat(m.get("three"), is(3));
+        assertThat(m.get("four"), equalTo(null));
+        assertThat(m.get(1), equalTo(null));
+
+        // Copying
+        assertThat(new HashTrieMap<String, Integer>(m).entrySet(), containsInAnyOrder(m.entrySet().toArray()));
+    }
+
+    // *** Special cases ***
 
     private static class Verifier<K,V> {
         private final Set<K> mKeySuperset = new HashSet<K>();
@@ -144,45 +187,6 @@ public class HashTrieMapTest extends TestCase {
                 }
             }
         }
-    }
-
-    public void testEmpty() {
-        for (HashTrieMap<Object,Object> empty : Arrays.asList(
-                HashTrieMap.EMPTY,
-                HashTrieMap.empty(),
-                HashTrieMap.of(),
-                new HashTrieMap<Object, Object>(),
-                new HashTrieMap<Object, Object>(Collections.emptyMap()),
-                new HashTrieMap<Object, Object>(new HashMap<Object, Object>())
-        )) {
-            assertThat(empty.size(), is(0));
-            assertThat(empty.isEmpty(), is(true));
-            assertThat(empty.get("foo"), nullValue());
-            assertThat(empty.without("foo"), sameInstance(empty));
-            assertThat(empty.toString(), is("{}"));
-            assertThat(empty, equalTo(Collections.emptyMap()));
-            assertThat(empty.entrySet().iterator().hasNext(), is(false));
-            assertThat(empty.keySet().iterator().hasNext(), is(false));
-            assertThat(empty.values().iterator().hasNext(), is(false));
-        }
-    }
-
-    public void testSingleton() {
-        HashTrieMap<String, Integer> m = HashTrieMap.singleton("meaning", 42);
-        assertThat(m.size(), is(1));
-        assertThat(m.get("meaning"), is(42));
-        assertThat(m.get("everything"), equalTo(null));
-        assertThat(m.get(1), equalTo(null));
-    }
-
-    public void testOf() {
-        HashTrieMap<String, Integer> m = HashTrieMap.of("one", 1, "two", 2, "three", 3);
-        assertThat(m.size(), is(3));
-        assertThat(m.get("one"), is(1));
-        assertThat(m.get("two"), is(2));
-        assertThat(m.get("three"), is(3));
-        assertThat(m.get("four"), equalTo(null));
-        assertThat(m.get(1), equalTo(null));
     }
 
     public void testSmallMaps() {
@@ -276,7 +280,7 @@ public class HashTrieMapTest extends TestCase {
         }
     }
 
-    // Fuzz tests
+    // *** Fuzz ***
 
     private static abstract class IntegerGenerator {
         private final String mName;
@@ -314,6 +318,28 @@ public class HashTrieMapTest extends TestCase {
         };
     }
 
+    private static void checkConsistency(HashTrieMap<TestHash<Integer>, Integer> map, HashMap<TestHash<Integer>, Integer> reference) {
+        assertThat(map, Matchers.<Map<TestHash<Integer>, Integer>> equalTo(reference));
+
+        // contains()
+        for (Map.Entry<TestHash<Integer>, Integer> entry : map.entrySet()) {
+            assertThat(map.get(entry.getKey()), is(entry.getValue()));
+            assertThat(map.keySet().contains(entry.getKey()), is(true));
+            assertThat(map.entrySet().contains(entry), is(true));
+            assertThat(map.containsKey(entry.getKey()), is(true));
+        }
+        // KeySet iteration
+        assertThat(map.keySet().size(), equalTo(reference.keySet().size()));
+        for (TestHash<Integer> key : map.keySet()) {
+            assertThat(reference.containsKey(key), is(true));
+        }
+        // EntrySet iteration
+        assertThat(map.entrySet().size(), equalTo(reference.entrySet().size()));
+        for (Map.Entry<TestHash<Integer>, Integer> entry : map.entrySet()) {
+            assertThat(entry.getValue(), equalTo(reference.get(entry.getKey())));
+        }
+    }
+
     /** General fuzz */
     public void testFuzz() {
         for (IntegerGenerator generator : Arrays.asList(
@@ -338,7 +364,7 @@ public class HashTrieMapTest extends TestCase {
                     map = map.with(k, k.value);
                     reference.put(k, k.value);
                 }
-                assertThat(map, Matchers.<Map<TestHash<Integer>, Integer>> equalTo(reference));
+                checkConsistency(map, reference);
             }
 
             // check copying
@@ -348,19 +374,24 @@ public class HashTrieMapTest extends TestCase {
             // remove all the keys, checking validity periodically
             List<TestHash<Integer>> keys = new ArrayList<TestHash<Integer>>(reference.keySet());
             Collections.shuffle(keys, random);
-            Iterator<TestHash<Integer>> keyIterator = keys.iterator();
+            ListIterator<TestHash<Integer>> keyIterator = keys.listIterator();
             for (int n = 0; n < nOuter; ++n) {
                 for (int i = 0; i < nInner; ++i) {
                     TestHash<Integer> key = keyIterator.next();
-                    // also try to remve a missing key with the same hash
+                    // also try to remove a missing key with the same hash
                     map = map.without(th(-key.value, key.hash)).without(key);
                     reference.remove(key);
                 }
-                assertThat(map, Matchers.<Map<TestHash<Integer>, Integer>> equalTo(reference));
+                checkConsistency(map, reference);
+                // check that the removed keys really are missing from get()
+                // (they must be missing from iteration)
+                for (TestHash<Integer> removed : keys.subList(0, keyIterator.nextIndex())) {
+                    assertThat(map.containsKey(removed), is(false));
+                }
             }
 
             long after = System.nanoTime();
-            System.out.println("Generator " + generator + " took " + (after - before) / 1.0E6 + " ms");
+            System.err.println("Generator " + generator + " took " + (after - before) / 1.0E6 + " ms");
         }
     }
 

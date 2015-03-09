@@ -32,7 +32,12 @@ public class TrieArray<T> extends AbstractList<T> implements SharedArray<T>, Ext
         this(null, null, 0);
     }
     public TrieArray(Collection<T> c) {
-        TrieArray<T> a = TrieArray.<T> empty().appendAll(c);
+        TrieArray<T> a;
+        if (c instanceof TrieArray) {
+            a = (TrieArray<T>) c;
+        } else {
+            a = TrieArray.<T> empty().appendAll(c);
+        }
         mRoot = a.mRoot;
         mEnd = a.mEnd;
         mSize = a.mSize;

@@ -12,9 +12,17 @@ import java.util.*;
  */
 public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>, Externalizable {
     private static final long serialVersionUID = -976712368400781259L;
+    private static final int HASH_SHIFT = 5;
+    private static final int HASH_MASK = (1 << HASH_SHIFT) - 1;
 
+    // A node in the trie structure, which has a location-defined hash code prefix
+    // and contains a list of children which may be nodes, a single entry, or a collision
+    // node.
+    // For a chunk 'h' of hash code (which is in the range [0 HASH_MASK]), it is present if
+    // hasChild & (1 << h) != 0.
+    // The index of the child of this 'h' is popCount(hasChild & ((1 << h) - 1)).
     private static class Node {
-        // child :: Node | SimpleMapEntry | SimpleMapEntry[]
+        // children :: [Node | SimpleMapEntry | SimpleMapEntry[]]
         public final Object[] children;
         public final int hasChild;
         private Node(Object[] children, int hasChild) {
@@ -24,9 +32,6 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>
             assert Integer.bitCount(hasChild) == children.length;
         }
     }
-    // constants
-    private static final int HASH_SHIFT = 5;
-    private static final int HASH_MASK = (1 << HASH_SHIFT) - 1;
 
     // these would all be final, but for Java's horrid readExternal() deserialization
     // root :: Node | SimpleMapEntry | SimpleMapEntry[] | Null
@@ -98,7 +103,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>
     private class EntrySet extends AbstractSet<Entry<K, V>> {
         @Override
         public Iterator<Entry<K, V>> iterator() {
-            return new DepthFirstIterator<K, V>(HashTrieMap.this.mRoot);
+            return new PreOrderIterator<K, V>(HashTrieMap.this.mRoot);
         }
 
         @Override
@@ -119,7 +124,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>
     private class KeySet extends AbstractSet<K> {
         @Override
         public Iterator<K> iterator() {
-            final Iterator<Entry<K,V>> entryIterator = new DepthFirstIterator<K, V>(HashTrieMap.this.mRoot);
+            final Iterator<Entry<K,V>> entryIterator = new PreOrderIterator<K, V>(HashTrieMap.this.mRoot);
             return new Iterator<K>() {
                 @Override
                 public boolean hasNext() {
@@ -438,7 +443,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>
         return newRoot == mRoot ? this : new HashTrieMap<K, V>(newRoot, mSize - 1);
     }
 
-    private static class DepthFirstIterator<K,V> implements Iterator<Map.Entry<K,V>> {
+    private static class PreOrderIterator<K,V> implements Iterator<Map.Entry<K,V>> {
         // stack of nodes from root to current leaf
         private static final int MAX_DEPTH = 7; // max size of the deque is 32 bits / 5 (bits/node) = 7 nodes
         private final Node[] mNodeStack = new Node[MAX_DEPTH];
@@ -448,7 +453,7 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>
         private Object mCurrent;
         private int mCurrentCollisionIndex = -1;
 
-        private DepthFirstIterator(Object root) {
+        private PreOrderIterator(Object root) {
             if (root instanceof Node) {
                 mNodeStack[0] = (Node) root;
                 mNodeIndexStack[0] = -1;
@@ -541,37 +546,5 @@ public class HashTrieMap<K,V> extends AbstractMap<K,V> implements SharedMap<K,V>
             m = m.with(entry.getKey(), entry.getValue());
         }
         mRoot = m.mRoot;
-    }
-
-    // Debugging methods
-
-    /** Debug your hash code - how many collisions are there in the map. */
-    public int countCollisions() {
-        int n = 0;
-        Queue<Object> mQueue = new ArrayDeque<Object>();
-        mQueue.add(mRoot);
-        while (!mQueue.isEmpty()) {
-            Object next = mQueue.remove();
-            if (next instanceof SimpleImmutableEntry[]) {
-                n += ((SimpleImmutableEntry[]) next).length;
-            } else if (next instanceof Node) {
-                mQueue.addAll(Arrays.asList(((Node) next).children));
-            }
-        }
-        return n;
-    }
-    /** Debug your hash code - how many trie nodes do we have. */
-    public int countNodes() {
-        int n = 0;
-        Queue<Object> mQueue = new ArrayDeque<Object>();
-        mQueue.add(mRoot);
-        while (!mQueue.isEmpty()) {
-            Object next = mQueue.remove();
-            if (next instanceof Node) {
-                ++n;
-                mQueue.addAll(Arrays.asList(((Node) next).children));
-            }
-        }
-        return n;
     }
 }

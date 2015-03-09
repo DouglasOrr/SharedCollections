@@ -29,22 +29,35 @@ public class TrieArrayTest {
         List<String> reference = new ArrayList<String>();
         for (int targetSize : INTERESTING_SIZES) {
             while (n < targetSize) {
-                array = array.append("item " + n);
-                reference.add("item " + n);
+                array = array.append("foreachInterestingSize " + n);
+                reference.add("foreachInterestingSize " + n);
                 ++n;
             }
             op.run(targetSize, new ArrayList<String>(reference), array);
         }
     }
 
+    private void assertGetOutOfBounds(SharedArray<?> array, int index) {
+        try {
+            array.get(index);
+            Assert.fail("Expected an IndexOutOfBoundsException");
+        } catch (IndexOutOfBoundsException e) {
+            assertThat(e.toString(), containsString(Integer.toString(index)));
+        }
+    }
+
     private void checkConsistency(SharedArray<String> array, List<String> reference) {
         assertThat(array, equalTo(reference));
-        assertThat(new ArrayList<String>(array), equalTo(reference));
+        if (!reference.isEmpty()) {
+            assertThat(array, contains(reference.toArray()));
+        }
         assertThat(array.size(), equalTo(reference.size()));
         assertThat(array.isEmpty(), equalTo(reference.isEmpty()));
         for (int i = 0; i < reference.size(); ++i) {
             assertThat(array.get(i), equalTo(reference.get(i)));
         }
+        assertGetOutOfBounds(array, array.size());
+        assertGetOutOfBounds(array, -1);
 
         // forward iteration
         ListIterator<String> rIt = reference.listIterator();
@@ -69,7 +82,6 @@ public class TrieArrayTest {
         }
 
         // round trip serialization
-
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             ObjectOutputStream out = new ObjectOutputStream(bytes);
@@ -91,6 +103,19 @@ public class TrieArrayTest {
 
     // basic use
 
+    private void checkAppend(TrieArray<String> array, List<String> reference, int nAppend) {
+        // try appending a series of elements
+        List<String> newReference = new ArrayList<String>(reference);
+        TrieArray<String> newArray = array;
+        for (int i = 0; i < nAppend; ++i) {
+            newReference.add("checkAppend " + i);
+            newArray = newArray.append("checkAppend " + i);
+            checkConsistency(newArray, newReference);
+        }
+        // original unmodified
+        checkConsistency(array, reference);
+    }
+
     @Test
     public void testAppend() {
         foreachInterestingSize(new Op() {
@@ -99,12 +124,24 @@ public class TrieArrayTest {
                 assertThat(array.size(), is(n));
                 checkConsistency(array, reference);
 
-                TrieArray<String> appended = array.append("foo");
-                assertThat(array, equalTo(reference));
-                assertThat(appended.size(), is(n+1));
-                assertThat(appended.get(n), is("foo"));
+                // just try adding a single element (more than this is tested by
+                // the implementation of foreachInterestingSize() anyway)
+                checkAppend(array, reference, 1);
             }
         });
+    }
+
+    private void checkRemend(TrieArray<String> array, List<String> reference) {
+        // try repeatedly removing the last element
+        List<String> newReference = new ArrayList<String>(reference);
+        TrieArray<String> newArray = array;
+        while (!newReference.isEmpty()) {
+            newReference.remove(newReference.size() - 1);
+            newArray = newArray.remend();
+            checkConsistency(newArray, newReference);
+        }
+        // original unmodified
+        checkConsistency(array, reference);
     }
 
     @Test
@@ -112,17 +149,22 @@ public class TrieArrayTest {
         foreachInterestingSize(new Op() {
             @Override
             public void run(int n, List<String> reference, TrieArray<String> array) {
-                List<String> newReference = new ArrayList<String>(reference);
-                TrieArray<String> newArray = array;
-                for (int i = 0; i < n; ++i) {
-                    newReference.remove(newReference.size() - 1);
-                    newArray = newArray.remend();
-                    checkConsistency(newArray, newReference);
-                }
-                // original unmodified
-                checkConsistency(array, reference);
+                checkRemend(array, reference);
             }
         });
+    }
+
+    private void checkUpdate(TrieArray<String> array, List<String> reference) {
+        // try updating each element in turn
+        List<String> newReference = new ArrayList<String>(reference);
+        TrieArray<String> newArray = array;
+        for (int i = 0; i < reference.size(); ++i) {
+            newReference.set(i, "checkUpdate " + i);
+            newArray = newArray.update(i, "checkUpdate " + i);
+            checkConsistency(newArray, newReference);
+        }
+        // original unmodified
+        assertThat(array, equalTo(reference));
     }
 
     @Test
@@ -130,19 +172,17 @@ public class TrieArrayTest {
         foreachInterestingSize(new Op() {
             @Override
             public void run(int n, List<String> reference, TrieArray<String> array) {
-                List<String> newReference = new ArrayList<String>(reference);
-                TrieArray<String> newArray = array;
-                for (int i = 0; i < n; ++i) {
-                    newReference.set(i, "updated " + i);
-                    newArray = newArray.update(i, "updated " + i);
-                    assertThat(newArray, equalTo(newReference));
-                    checkConsistency(newArray, newReference);
-                }
-                // original unmodified
-                assertThat(array.size(), equalTo(n));
-                checkConsistency(array, reference);
+                checkUpdate(array, reference);
             }
         });
+    }
+
+    private void checkConsistencyWithModification(TrieArray<String> array, List<String> reference) {
+        checkConsistency(array, reference);
+        // check that all the basic collection ops still work on the result
+        checkUpdate(array, reference);
+        checkRemend(array, reference);
+        checkAppend(array, reference, 100);
     }
 
     @Test
@@ -150,14 +190,64 @@ public class TrieArrayTest {
         foreachInterestingSize(new Op() {
             @Override
             public void run(int n, List<String> reference, TrieArray<String> array) {
-                for (int i = 0; i < n; ++i) {
-                    checkConsistency(array.take(i), reference.subList(0, i));
-                    // original unmodified
-                    assertThat(array, equalTo(reference));
+                // Build a set of counts to test
+                Set<Integer> testTakes = new HashSet<Integer>();
+                if (n < 100) {
+                    // check all possible sublists
+                    for (int i = 0; i <= n; ++i) {
+                        testTakes.add(i);
+                    }
+                } else {
+                    // just check a few interesting sizes (otherwise it's far too slow)
+                    for (int i : INTERESTING_SIZES) {
+                        if (i <= n) {
+                            testTakes.add(i);
+                        }
+                    }
+                    testTakes.add(n-1);
+                    testTakes.add(n);
                 }
+                // run the test
+                for (int i : testTakes) {
+                    checkConsistencyWithModification(array.take(i), reference.subList(0, i));
+                }
+                // original unmodified
+                checkConsistency(array, reference);
             }
         });
     }
+
+    @Test
+    public void testAppendAll() {
+        // A very slow test - but good to be thorough!
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(final int n0, final List<String> reference0, final TrieArray<String> array0) {
+                foreachInterestingSize(new Op() {
+                    @Override
+                    public void run(int n1, List<String> reference1, TrieArray<String> array1) {
+                        List<String> concatReference = new ArrayList<String>(reference0);
+                        concatReference.addAll(reference1);
+                        checkConsistencyWithModification(array0.appendAll(array1), concatReference);
+                    }
+                });
+            }
+        });
+    }
+
+    @Test
+    public void testCopy() {
+        foreachInterestingSize(new Op() {
+            @Override
+            public void run(int n, List<String> reference, TrieArray<String> array) {
+                checkConsistency(new TrieArray<String>(reference), reference);
+                // sharing (cheap) copy
+                checkConsistency(new TrieArray<String>(array), reference);
+            }
+        });
+    }
+
+    // SharedArrays
 
     @Test
     public void testInsert() {
@@ -185,35 +275,6 @@ public class TrieArrayTest {
                     checkConsistency(SharedArrays.remove(array, i), newReference);
                 }
                 checkConsistency(array, reference);
-            }
-        });
-    }
-
-    @Test
-    public void testCopy() {
-        foreachInterestingSize(new Op() {
-            @Override
-            public void run(int n, List<String> reference, TrieArray<String> array) {
-                assertThat(new TrieArray<String>(reference), equalTo(reference));
-                assertThat(new TrieArray<String>(array), equalTo(reference));
-            }
-        });
-    }
-
-    @Test
-    public void testAppendAll() {
-        foreachInterestingSize(new Op() {
-            @Override
-            public void run(int n0, final List<String> reference0, final TrieArray<String> array0) {
-                foreachInterestingSize(new Op() {
-                    @Override
-                    public void run(int n1, List<String> reference1, TrieArray<String> array1) {
-                        //System.out.println(String.format("[%d].appendAll([%d])", array0.size(), array1.size()));
-                        List<String> concatReference = new ArrayList<String>(reference0);
-                        concatReference.addAll(reference1);
-                        checkConsistency(array0.appendAll(array1), concatReference);
-                    }
-                });
             }
         });
     }

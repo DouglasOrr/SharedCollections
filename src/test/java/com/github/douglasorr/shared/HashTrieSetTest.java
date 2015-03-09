@@ -15,8 +15,7 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.emptyCollectionOf;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 
 // HashTrieSet is an adapter onto HashTrieMap, so there shouldn't be too
 // much testing in it
@@ -50,6 +49,9 @@ public class HashTrieSetTest extends TestCase {
         assertThat(nums.contains("three"), is(true));
         assertThat(nums.contains("four"), is(false));
         assertThat(justOne, Matchers.<Set<String>> equalTo(ImmutableSet.of("one")));
+
+        assertThat(new HashTrieSet<String>(nums), containsInAnyOrder("one", "two", "three"));
+        assertThat(new HashTrieSet<String>(asList("one", "two", "three")), containsInAnyOrder("one", "two", "three"));
     }
 
     public void testWithWithout() {

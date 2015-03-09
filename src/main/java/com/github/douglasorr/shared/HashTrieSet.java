@@ -28,9 +28,14 @@ public class HashTrieSet<T> extends AbstractSet<T> implements SharedSet<T>, Exte
         mMap = HashTrieMap.EMPTY;
     }
     public HashTrieSet(Collection<? extends T> c) {
-        HashTrieMap<T, Object> map = HashTrieMap.empty();
-        for (T value : c) {
-            map = map.with(value, PRESENT);
+        HashTrieMap<T, Object> map;
+        if (c instanceof HashTrieSet) {
+            map = ((HashTrieSet<T>) c).mMap;
+        } else {
+            map = HashTrieMap.empty();
+            for (T value : c) {
+                map = map.with(value, PRESENT);
+            }
         }
         mMap = map;
     }
