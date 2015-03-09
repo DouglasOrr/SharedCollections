@@ -144,12 +144,12 @@ class UpdatePages extends DefaultTask {
 
 task publishDoc(type: UpdatePages, description: "Publishes javadoc to gh-pages") {
     inputs.file javadoc
-    destDir = "doc/${version}"
+    destDir = "releases/${version}" // ./javadoc (implicit)
 }
 
 task publishProfile(type: UpdatePages, description: "Publishes profiling report to gh-pages") {
     inputs.file runProfile
-    destDir = "profile/${version}"
+    destDir = "releases/${version}/profile"
 }
 
 task release(dependsOn: ['uploadArchives', 'publishDoc', 'publishProfile'],
