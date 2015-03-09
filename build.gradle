@@ -3,7 +3,7 @@ apply plugin: 'signing'
 apply plugin: 'maven'
 
 group = "com.github.douglasorr"
-version = '0.1.0'
+version = '0.1.1'
 ext.source_version = "git rev-parse HEAD".execute().text
 ext.can_sign = project.hasProperty("signing.keyId")
 
