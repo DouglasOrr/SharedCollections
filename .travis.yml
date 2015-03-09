@@ -1,5 +1,12 @@
 language: java
 
+script:
+ - travis_wait ./gradlew check
+
+jdk:
+  - oraclejdk8
+  - openjdk6
+
 notifications:
   email:
     - douglas.orr99@gmail.com
